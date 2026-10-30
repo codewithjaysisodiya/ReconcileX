@@ -86,6 +86,43 @@ const StorageManager = (() => {
                 localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessionSummary));
             }
 
+            // Background sync with Java Enterprise API (/api/reconciliation)
+            try {
+                if (typeof fetch !== "undefined") {
+                    fetch("http://localhost:8080/api/reconciliation", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            sessionCode: sessionId,
+                            bankFileName: sessionSummary.bankFileName,
+                            companyFileName: sessionSummary.companyFileName,
+                            totalProcessed: sessionSummary.totalProcessed,
+                            matchedCount: sessionSummary.matchedCount,
+                            unmatchedCount: sessionSummary.unmatchedCount,
+                            mismatchCount: sessionSummary.mismatchCount,
+                            duplicateCount: sessionSummary.duplicateCount,
+                            matchPercentage: sessionSummary.matchPercentage,
+                            totalDiscrepancy: sessionSummary.totalDiscrepancyAmount,
+                            netVariance: sessionData.statistics ? (sessionData.statistics.netDiscrepancyAmount || 0) : 0,
+                            transactions: (sessionSummary.results || []).slice(0, 500).map((r, i) => ({
+                                transaction_id: r.transaction_id || ("TXN-" + (i + 1)),
+                                bank_amount: r.bank_amount || 0,
+                                company_amount: r.company_amount || 0,
+                                difference: r.difference || 0,
+                                bank_date: r.bank_date || null,
+                                company_date: r.company_date || null,
+                                status: r.status || "unmatched",
+                                bank_description: r.bank_description || "",
+                                company_description: r.company_description || "",
+                                bank_reference: r.bank_reference || "",
+                                company_reference: r.company_reference || "",
+                                audit_notes: r.audit_notes || ""
+                            }))
+                        })
+                    }).catch(() => {});
+                }
+            } catch (ignored) {}
+
             return sessionSummary;
         } catch (e) {
             console.error("Critical storage failure:", e);
