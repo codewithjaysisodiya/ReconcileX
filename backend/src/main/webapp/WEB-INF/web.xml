@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                             http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+    <display-name>ReconcileX Enterprise Reconciliation System</display-name>
+    <description>
+        Automated Financial Reconciliation, Statement Ingestion, and Audit Compliance Engine.
+    </description>
+
+    <!-- 1. User Registration Servlet -->
+    <servlet>
+        <servlet-name>RegisterServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.RegisterServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>RegisterServlet</servlet-name>
+        <url-pattern>/api/auth/register</url-pattern>
+        <url-pattern>/RegisterServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 2. User Login Servlet -->
+    <servlet>
+        <servlet-name>LoginServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.LoginServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>LoginServlet</servlet-name>
+        <url-pattern>/api/auth/login</url-pattern>
+        <url-pattern>/LoginServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 3. General Multi-format Document Upload Servlet -->
+    <servlet>
+        <servlet-name>UploadServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.UploadServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UploadServlet</servlet-name>
+        <url-pattern>/api/upload</url-pattern>
+        <url-pattern>/UploadServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 4. Dedicated CSV Statement Upload Servlet -->
+    <servlet>
+        <servlet-name>CSVUploadServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.CSVUploadServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CSVUploadServlet</servlet-name>
+        <url-pattern>/api/upload/csv</url-pattern>
+        <url-pattern>/CSVUploadServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 5. Dedicated PDF Statement Upload Servlet -->
+    <servlet>
+        <servlet-name>PDFUploadServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.PDFUploadServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>PDFUploadServlet</servlet-name>
+        <url-pattern>/api/upload/pdf</url-pattern>
+        <url-pattern>/PDFUploadServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 6. Core Reconciliation Engine & Session Servlet -->
+    <servlet>
+        <servlet-name>ReconciliationServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.ReconciliationServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ReconciliationServlet</servlet-name>
+        <url-pattern>/api/reconciliation</url-pattern>
+        <url-pattern>/api/sessions</url-pattern>
+        <url-pattern>/ReconciliationServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 7. Duplicate Detection Servlet -->
+    <servlet>
+        <servlet-name>DuplicateDetectionServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.DuplicateDetectionServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DuplicateDetectionServlet</servlet-name>
+        <url-pattern>/api/duplicates</url-pattern>
+        <url-pattern>/DuplicateDetectionServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 8. Audit Report Generation & Export Servlet -->
+    <servlet>
+        <servlet-name>ReportServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.ReportServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ReportServlet</servlet-name>
+        <url-pattern>/api/report</url-pattern>
+        <url-pattern>/ReportServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 9. Analytics & Accuracy KPI Servlet -->
+    <servlet>
+        <servlet-name>AnalyticsServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.AnalyticsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AnalyticsServlet</servlet-name>
+        <url-pattern>/api/analytics</url-pattern>
+        <url-pattern>/AnalyticsServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- 10. Maker-Checker Compliance & Discrepancy Audit Servlet -->
+    <servlet>
+        <servlet-name>AuditServlet</servlet-name>
+        <servlet-class>com.reconcilex.servlet.AuditServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AuditServlet</servlet-name>
+        <url-pattern>/api/audit</url-pattern>
+        <url-pattern>/AuditServlet</url-pattern>
+    </servlet-mapping>
+
+    <!-- Session Timeout Configuration -->
+    <session-config>
+        <session-timeout>60</session-timeout>
+    </session-config>
+
+</web-app>

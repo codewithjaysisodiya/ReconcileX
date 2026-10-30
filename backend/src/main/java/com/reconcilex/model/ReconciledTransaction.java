@@ -70,4 +70,30 @@ public class ReconciledTransaction {
 
     public String getAuditNotes() { return auditNotes; }
     public void setAuditNotes(String auditNotes) { this.auditNotes = auditNotes; }
+
+    public String toJson() {
+        return "{" +
+            "\"id\":" + id + "," +
+            "\"sessionId\":" + sessionId + "," +
+            "\"transactionId\":\"" + escape(transactionId) + "\"," +
+            "\"occurrenceIndex\":" + occurrenceIndex + "," +
+            "\"bankAmount\":" + (bankAmount != null ? bankAmount : "null") + "," +
+            "\"companyAmount\":" + (companyAmount != null ? companyAmount : "null") + "," +
+            "\"difference\":" + difference + "," +
+            "\"bankDate\":" + (bankDate != null ? "\"" + bankDate.toString() + "\"" : "null") + "," +
+            "\"companyDate\":" + (companyDate != null ? "\"" + companyDate.toString() + "\"" : "null") + "," +
+            "\"dateDifferenceDays\":" + (dateDifferenceDays != null ? dateDifferenceDays : "null") + "," +
+            "\"status\":\"" + escape(status) + "\"," +
+            "\"bankDescription\":\"" + escape(bankDescription) + "\"," +
+            "\"companyDescription\":\"" + escape(companyDescription) + "\"," +
+            "\"bankReference\":\"" + escape(bankReference) + "\"," +
+            "\"companyReference\":\"" + escape(companyReference) + "\"," +
+            "\"auditNotes\":\"" + escape(auditNotes) + "\"" +
+            "}";
+    }
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ").replace("\r", " ");
+    }
 }
