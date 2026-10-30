@@ -1204,6 +1204,7 @@
             const p = document.getElementById("authLoginPass").value;
             try {
                 const res = await AuthManager.login(u, p);
+                AuthManager.resetForms();
                 AuthManager.closeAuthModal();
                 App.showToast(`Signed in as ${res.user.fullName} (${res.source})`, "success");
             } catch (err) {
@@ -1220,6 +1221,8 @@
             const p = document.getElementById("authRegPass").value;
             try {
                 const res = await AuthManager.register(u, em, p, n, r);
+                AuthManager.resetForms();
+                switchAuthTab('signin');
                 AuthManager.closeAuthModal();
                 App.showToast(`Account created for ${res.user.fullName}!`, "success");
             } catch (err) {

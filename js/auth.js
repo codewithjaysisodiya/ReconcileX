@@ -194,12 +194,50 @@ const AuthManager = (() => {
         }
     }
 
+    function resetForms() {
+        if (typeof document === "undefined") return;
+
+        const regForm = document.getElementById("registerForm");
+        if (regForm) regForm.reset();
+        const signForm = document.getElementById("signInForm");
+        if (signForm) signForm.reset();
+
+        // Explicitly wipe clean all registration inputs
+        const regUser = document.getElementById("authRegUser");
+        if (regUser) regUser.value = "";
+        const regEmail = document.getElementById("authRegEmail");
+        if (regEmail) regEmail.value = "";
+        const regName = document.getElementById("authRegName");
+        if (regName) regName.value = "";
+        const regPass = document.getElementById("authRegPass");
+        if (regPass) regPass.value = "";
+        const regRole = document.getElementById("authRegRole");
+        if (regRole) regRole.selectedIndex = 0;
+
+        // Explicitly wipe login inputs
+        const logUser = document.getElementById("authLoginUser");
+        if (logUser) logUser.value = "";
+        const logPass = document.getElementById("authLoginPass");
+        if (logPass) logPass.value = "";
+
+        // Reset password fields to hidden and restore eye icon
+        if (logPass) logPass.type = "password";
+        if (regPass) regPass.type = "password";
+
+        const icons = document.querySelectorAll(".btn-toggle-password i");
+        icons.forEach(icon => {
+            icon.className = "fas fa-eye";
+        });
+    }
+
     function openAuthModal() {
+        resetForms();
         const modal = document.getElementById("authModal");
         if (modal) modal.classList.add("active");
     }
 
     function closeAuthModal() {
+        resetForms();
         const modal = document.getElementById("authModal");
         if (modal) modal.classList.remove("active");
     }
@@ -216,6 +254,7 @@ const AuthManager = (() => {
         getCurrentUser,
         openAuthModal,
         closeAuthModal,
+        resetForms,
         checkBackendHealth
     };
 })();
