@@ -465,6 +465,21 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
         const matchedCross = reconCrossField.results.filter(x => x.status === "matched");
         assert(matchedCross.length === 2, "Smart Secondary Field Match successfully paired both records on Amount & Date");
 
+        // ----------------------------------------------------
+        // TEST 14: Authentication Output Lock & Clean Database Verification
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Authentication Output Lock & Clean Database Verification...");
+
+        // 1. Verify demo accounts (admin, analyst) are purged from database table
+        const currentUsers = DatabaseEngine.getUsersTable();
+        const hasAdminDemo = currentUsers.some(u => u.username.toLowerCase() === "admin");
+        const hasAnalystDemo = currentUsers.some(u => u.username.toLowerCase() === "analyst");
+        assert(!hasAdminDemo && !hasAnalystDemo, "Admin (Demo) and Analyst (Demo) are successfully removed from database");
+
+        // 2. Logout and verify unauthenticated guest user state
+        AuthManager.logout();
+        assert(AuthManager.getCurrentUser() === null, "User is in unauthenticated guest state after logout");
+
         // Summary
         console.log("\\n==============================================");
         console.log("TEST SUMMARY: " + passedTests + " PASSED, " + failedTests + " FAILED");

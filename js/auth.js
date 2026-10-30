@@ -11,26 +11,6 @@ const AuthManager = (() => {
     const USER_STORAGE_KEY = "reconcilex_auth_user_v1";
     const API_BASE = "http://localhost:8080/api";
 
-    // Demo Pre-configured accounts for quick hackathon evaluation
-    const DEMO_USERS = [
-        {
-            id: 1,
-            username: "admin",
-            email: "admin@reconcilex.internal",
-            fullName: "ReconcileX Lead Administrator",
-            role: "ADMIN",
-            password: "Admin@1234"
-        },
-        {
-            id: 2,
-            username: "analyst",
-            email: "analyst@reconcilex.internal",
-            fullName: "Senior Financial Analyst",
-            role: "FINANCIAL_ANALYST",
-            password: "Admin@1234"
-        }
-    ];
-
     let currentUser = null;
 
     function init() {
@@ -43,13 +23,19 @@ const AuthManager = (() => {
         try {
             const raw = localStorage.getItem(USER_STORAGE_KEY);
             if (raw) {
-                currentUser = JSON.parse(raw);
+                const u = JSON.parse(raw);
+                // Purge legacy demo accounts from stored session
+                if (u && (u.username === "admin" || u.username === "analyst")) {
+                    currentUser = null;
+                    localStorage.removeItem(USER_STORAGE_KEY);
+                } else {
+                    currentUser = u;
+                }
             } else {
-                // Default to Analyst user for immediate seamless hackathon evaluation
-                currentUser = DEMO_USERS[1];
+                currentUser = null;
             }
         } catch (e) {
-            currentUser = DEMO_USERS[1];
+            currentUser = null;
         }
     }
 
@@ -158,7 +144,9 @@ const AuthManager = (() => {
 
     function logout() {
         saveUserToStorage(null);
-        App.showToast("Signed out successfully.", "info");
+        if (typeof App !== "undefined" && App.showToast) {
+            App.showToast("Signed out successfully.", "info");
+        }
     }
 
     function getCurrentUser() {

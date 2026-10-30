@@ -116,36 +116,10 @@ const DatabaseEngine = (() => {
     }
 
     /**
-     * Pre-seeded default enterprise accounts
+     * Default users repository (clean, no pre-seeded demo accounts)
      */
     function getDefaultUsers() {
-        const adminSalt = "rx_salt_default_2026";
-        const analystSalt = "rx_salt_analyst_2026";
-
-        return [
-            {
-                id: 1,
-                username: "admin",
-                email: "admin@reconcilex.internal",
-                full_name: "ReconcileX Lead Administrator",
-                role: "ADMIN",
-                password_hash: hashPassword("Admin@1234", adminSalt),
-                salt: adminSalt,
-                created_at: "2026-10-30 10:00:00",
-                last_login: null
-            },
-            {
-                id: 2,
-                username: "analyst",
-                email: "analyst@reconcilex.internal",
-                full_name: "Senior Financial Analyst",
-                role: "FINANCIAL_ANALYST",
-                password_hash: hashPassword("Admin@1234", analystSalt),
-                salt: analystSalt,
-                created_at: "2026-10-30 10:15:00",
-                last_login: null
-            }
-        ];
+        return [];
     }
 
     /**
@@ -158,16 +132,22 @@ const DatabaseEngine = (() => {
                 const raw = localStorage.getItem(DB_STORAGE_KEY);
                 if (raw) {
                     const list = JSON.parse(raw);
-                    if (Array.isArray(list) && list.length > 0) return list;
+                    if (Array.isArray(list)) {
+                        // Purge legacy demo users if previously cached in browser localStorage
+                        const cleaned = list.filter(u => u.username !== "admin" && u.username !== "analyst");
+                        if (cleaned.length !== list.length) {
+                            saveUsersTable(cleaned);
+                        }
+                        return cleaned;
+                    }
                 }
             } catch (e) {}
         } else if (memoryUsers && Array.isArray(memoryUsers)) {
-            return memoryUsers;
+            return memoryUsers.filter(u => u.username !== "admin" && u.username !== "analyst");
         }
 
-        const defaults = getDefaultUsers();
-        saveUsersTable(defaults);
-        return defaults;
+        saveUsersTable([]);
+        return [];
     }
 
     function saveUsersTable(users) {
@@ -315,6 +295,19 @@ const DatabaseEngine = (() => {
 
         const users = getUsersTable();
         if (countBadge) countBadge.textContent = `${users.length} Users Stored`;
+
+        if (users.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+                        <i class="fas fa-user-plus text-cyan" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                        <strong>No Registered Users in Database</strong><br>
+                        <span style="font-size: 12px;">Create an account via the "Register Analyst" form to store your first verified database record.</span>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         tbody.innerHTML = users.map(u => {
             const shortHash = u.password_hash ? `${u.password_hash.slice(0, 10)}...${u.password_hash.slice(-8)}` : "—";

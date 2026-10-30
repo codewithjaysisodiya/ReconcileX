@@ -168,6 +168,20 @@ const App = (() => {
      * @param {string} viewName 
      */
     function switchView(viewName) {
+        // Enforce Authentication before accessing sensitive financial output sections
+        const protectedViews = ["dashboard", "transactions", "analytics", "reports", "workflow"];
+        if (protectedViews.includes(viewName) && typeof AuthManager !== "undefined") {
+            const user = AuthManager.getCurrentUser();
+            if (!user) {
+                showToast("Authentication Required: Please sign in or create an account to view reconciliation output.", "warning");
+                if (AuthManager.openAuthModal) AuthManager.openAuthModal();
+                if (currentTab !== "reconciliation") {
+                    switchView("reconciliation");
+                }
+                return;
+            }
+        }
+
         currentTab = viewName;
 
         // Update nav item active states
@@ -501,8 +515,18 @@ const App = (() => {
      */
     function runReconciliation() {
         if (!bankParsedData || !companyParsedData) {
-            showToast("Please upload both Bank Statement and Company Records CSV files.", "warning");
+            showToast("Please upload both Bank Statement and Company Records files.", "warning");
             return;
+        }
+
+        // Output Lock: Must be signed in or register to view output
+        if (typeof AuthManager !== "undefined") {
+            const user = AuthManager.getCurrentUser();
+            if (!user) {
+                showToast("Authentication Required: Please sign in or create an account to view reconciliation output.", "warning");
+                if (AuthManager.openAuthModal) AuthManager.openAuthModal();
+                return;
+            }
         }
 
         if (dom.runReconcileBtn) {
@@ -561,6 +585,14 @@ const App = (() => {
      * Restore previous session from LocalStorage
      */
     function restorePreviousSession() {
+        const user = (typeof AuthManager !== "undefined") ? AuthManager.getCurrentUser() : null;
+        if (!user) {
+            Dashboard.showEmptyState();
+            // Start guest on file upload view
+            if (typeof switchView === "function") switchView("reconciliation");
+            return;
+        }
+
         const active = StorageManager.getActiveSession();
         if (active && active.results && active.statistics) {
             activeReconciliation = active;
@@ -884,6 +916,8 @@ const App = (() => {
         showToast,
         handleBankFileSelected,
         handleCompanyFileSelected,
+        runReconciliation,
+        hasUploadedFiles: () => !!(bankParsedData && companyParsedData),
         removeFile: clearFile,
         getActiveReconciliation: () => activeReconciliation
     };

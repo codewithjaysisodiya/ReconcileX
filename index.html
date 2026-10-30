@@ -1012,19 +1012,6 @@
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
                 </form>
-
-                <!-- Quick Demo Credentials -->
-                <div class="demo-account-pills">
-                    <div class="demo-pills-title">Quick Demo Logins (Auto-Fill)</div>
-                    <div class="pills-row">
-                        <button type="button" class="btn-demo-pill" onclick="quickFillAuth('analyst')">
-                            <i class="fas fa-user"></i> Analyst (Demo)
-                        </button>
-                        <button type="button" class="btn-demo-pill" onclick="quickFillAuth('admin')">
-                            <i class="fas fa-user-shield"></i> Admin (Demo)
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1203,19 +1190,6 @@
             }
         }
 
-        function quickFillAuth(type) {
-            switchAuthTab('signin');
-            const u = document.getElementById("authLoginUser");
-            const p = document.getElementById("authLoginPass");
-            if (type === 'admin') {
-                u.value = "admin";
-                p.value = "Admin@1234";
-            } else {
-                u.value = "analyst";
-                p.value = "Admin@1234";
-            }
-        }
-
         async function handleSignIn(e) {
             e.preventDefault();
             const u = document.getElementById("authLoginUser").value;
@@ -1225,6 +1199,9 @@
                 AuthManager.resetForms();
                 AuthManager.closeAuthModal();
                 App.showToast(`Signed in as ${res.user.fullName} (${res.source})`, "success");
+                if (typeof App !== "undefined" && App.hasUploadedFiles && App.hasUploadedFiles()) {
+                    App.runReconciliation();
+                }
             } catch (err) {
                 App.showToast(err.message, "danger");
             }
@@ -1243,6 +1220,9 @@
                 switchAuthTab('signin');
                 AuthManager.closeAuthModal();
                 App.showToast(`Account created for ${res.user.fullName}!`, "success");
+                if (typeof App !== "undefined" && App.hasUploadedFiles && App.hasUploadedFiles()) {
+                    App.runReconciliation();
+                }
             } catch (err) {
                 App.showToast(err.message, "danger");
             }

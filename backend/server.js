@@ -28,41 +28,15 @@ function generateSalt() {
     return crypto.randomBytes(16).toString("hex");
 }
 
-// Initial seed users if database file does not exist
+// Initial clean database structure without pre-seeded demo accounts
 function getDefaultDatabase() {
-    const adminSalt = "rx_salt_default_2026";
-    const analystSalt = "rx_salt_analyst_2026";
-
     return {
-        users: [
-            {
-                id: 1,
-                username: "admin",
-                email: "admin@reconcilex.internal",
-                full_name: "ReconcileX Lead Administrator",
-                role: "ADMIN",
-                password_hash: hashPassword("Admin@1234", adminSalt),
-                salt: adminSalt,
-                created_at: "2026-10-30 10:00:00",
-                last_login: null
-            },
-            {
-                id: 2,
-                username: "analyst",
-                email: "analyst@reconcilex.internal",
-                full_name: "Senior Financial Analyst",
-                role: "FINANCIAL_ANALYST",
-                password_hash: hashPassword("Admin@1234", analystSalt),
-                salt: analystSalt,
-                created_at: "2026-10-30 10:15:00",
-                last_login: null
-            }
-        ],
+        users: [],
         audit_logs: [
             {
                 id: "LOG-INIT",
                 action: "SYSTEM_BOOTSTRAP",
-                details: "Database initialized with default administrator and analyst accounts.",
+                details: "Database initialized with clean production schema.",
                 timestamp: new Date().toISOString()
             }
         ]
@@ -73,7 +47,15 @@ function readDatabase() {
     try {
         if (fs.existsSync(DB_FILE)) {
             const data = fs.readFileSync(DB_FILE, "utf-8");
-            return JSON.parse(data);
+            const db = JSON.parse(data);
+            if (db && Array.isArray(db.users)) {
+                const initialCount = db.users.length;
+                db.users = db.users.filter(u => u.username !== "admin" && u.username !== "analyst");
+                if (db.users.length !== initialCount) {
+                    writeDatabase(db);
+                }
+            }
+            return db;
         }
     } catch (e) {
         console.error("Warning reading database file:", e.message);
