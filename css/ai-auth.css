@@ -45,6 +45,38 @@
     color: var(--text-secondary);
 }
 
+.password-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrap input {
+    width: 100%;
+    padding-right: 42px !important;
+}
+
+.btn-toggle-password {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    z-index: 2;
+}
+
+.btn-toggle-password:hover {
+    color: var(--primary);
+}
+
 .demo-account-pills {
     background: rgba(0, 0, 0, 0.2);
     border: 1px dashed var(--border-color);
