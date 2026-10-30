@@ -1,0 +1,19 @@
+{
+  "name": "reconcilex",
+  "version": "2.4.0",
+  "description": "Smart Financial Transaction Reconciliation & Anomaly Detection System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node tests/test-suite.js"
+  },
+  "keywords": [
+    "reconciliation",
+    "financial",
+    "audit",
+    "accounting",
+    "ai-matching"
+  ],
+  "author": "ReconcileX Engineering Team",
+  "license": "MIT"
+}

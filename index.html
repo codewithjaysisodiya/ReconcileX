@@ -87,7 +87,7 @@
                     <div class="status-dot-pulse"></div>
                     <span>System Online • v2.4</span>
                 </div>
-                <div id="dbStatusIndicator" class="status-badge badge-matched" style="font-size: 10px; width: 100%; justify-content: center;">
+                <div id="dbStatusIndicator" class="status-badge badge-matched" style="font-size: 10px; width: 100%; justify-content: center; cursor: pointer;" onclick="DatabaseEngine.openInspector()" title="Click to inspect Live Database Records">
                     <i class="fas fa-database"></i> MySQL Ready
                 </div>
             </div>
@@ -115,6 +115,11 @@
                     <button class="btn-quick-action" id="navDiagnosticsBtn" title="Run Automated System Diagnostics & Health Check" onclick="SystemDiagnostics.runDiagnostics()">
                         <i class="fas fa-stethoscope text-green"></i>
                         <span>Diagnostics</span>
+                    </button>
+
+                    <button class="btn-quick-action" id="navDatabaseBtn" title="Inspect Live Database Records & User Credentials" onclick="DatabaseEngine.openInspector()">
+                        <i class="fas fa-database text-cyan"></i>
+                        <span>Database</span>
                     </button>
 
                     <button class="btn-quick-action" id="navQuickDemoBtn" title="Load sample demo transactions with one click">
@@ -1007,8 +1012,59 @@
     </div>
 
     <!-- ==========================================
-         AI FINANCIAL COPILOT (PHASE 3)
+         DATABASE INSPECTOR MODAL (PHASE 2 DEEP DIVE)
          ========================================== -->
+    <div class="modal-overlay" id="dbInspectorModal">
+        <div class="modal-card" style="max-width: 960px; width: 95%;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-database text-cyan" style="font-size: 20px;"></i>
+                    <div>
+                        <h3 style="margin: 0;">Relational Database Inspector</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                            Active Table: <code class="font-mono text-cyan">users</code> • Schema: <code class="font-mono">reconcilex_db</code> • Cryptographic Hash: SHA-256 + Salt
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="dbUserCountBadge" class="status-badge badge-matched">2 Users Stored</span>
+                    <button class="btn-close-modal" onclick="DatabaseEngine.closeInspector()" aria-label="Close modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 16px;">
+                <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-lock text-green"></i> Passwords are salted with 16-byte cryptorandom entropy & hashed using SHA-256 before insertion.
+                    </div>
+                    <button type="button" class="btn-action-view" onclick="DatabaseEngine.renderDatabaseInspector()" style="padding: 6px 12px; font-size: 12px;">
+                        <i class="fas fa-sync-alt"></i> Refresh Records
+                    </button>
+                </div>
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="position: sticky; top: 0; background: var(--surface-card); z-index: 2;">
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Corporate Email</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Password Hash (SHA-256)</th>
+                                <th>Salt</th>
+                                <th>Created At</th>
+                                <th>Last Verified Login</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dbInspectorTableBody">
+                            <!-- Populated dynamically by DatabaseEngine.renderDatabaseInspector() -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
     <button class="ai-fab-btn" id="aiCopilotFab" title="Open AI Financial Reconciliation Assistant" onclick="toggleAICopilot()">
         <i class="fas fa-robot"></i>
     </button>
@@ -1089,6 +1145,7 @@
     <script src="js/analytics.js"></script>
     <script src="js/reportGenerator.js"></script>
     <script src="js/aiEngine.js"></script>
+    <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/diagnostics.js"></script>
     <script src="js/pdfExtractor.js"></script>

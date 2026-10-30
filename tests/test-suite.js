@@ -46,6 +46,7 @@ loadScript("js/reconciliation.js");
 loadScript("js/storage.js");
 loadScript("js/csvReader.js");
 loadScript("js/aiEngine.js");
+loadScript("js/database.js");
 loadScript("js/auth.js");
 loadScript("js/pdfExtractor.js");
 loadScript("js/forecasting.js");
@@ -274,6 +275,81 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
 
         AuditWorkflow.approveResolution("TKT-TXN003", "Approved by Senior Auditor: Vendor billing adjustment confirmed.");
         assert(true, "Senior Auditor digitally signed and approved resolution ticket TKT-TXN003");
+
+        // ----------------------------------------------------
+        // TEST 11: Database Registration & Credential-Verified Login
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Database Registration & Credential Verification...");
+        
+        // 1. Direct registration into database table
+        const regUser = DatabaseEngine.registerUser({
+            username: "fin_lead",
+            email: "lead@reconcilex.internal",
+            password: "SecurePass@2026",
+            fullName: "Finance Team Lead",
+            role: "SENIOR_AUDITOR"
+        });
+        assert(regUser.id && regUser.username === "fin_lead", "User registered and written to database table");
+
+        // 2. Verify stored record has SHA-256 hash and unique salt (NOT plaintext password)
+        const dbTable = DatabaseEngine.getUsersTable();
+        const storedRec = dbTable.find(u => u.username === "fin_lead");
+        assert(storedRec && storedRec.password_hash.length === 64, "Database record contains 64-character SHA-256 hash");
+        assert(storedRec.salt && storedRec.salt.length === 32, "Database record has unique 16-byte cryptorandom salt");
+        assert(storedRec.password_hash !== "SecurePass@2026", "Password is never stored in plaintext");
+
+        // 3. Duplicate username constraint rejection
+        let dupUserBlocked = false;
+        try {
+            DatabaseEngine.registerUser({
+                username: "fin_lead",
+                email: "another@company.com",
+                password: "OtherPass@1234"
+            });
+        } catch (e) {
+            dupUserBlocked = e.message.includes("Database Constraint Violation");
+        }
+        assert(dupUserBlocked, "Duplicate username registration rejected by database constraint");
+
+        // 4. Duplicate email constraint rejection
+        let dupEmailBlocked = false;
+        try {
+            DatabaseEngine.registerUser({
+                username: "another_user",
+                email: "lead@reconcilex.internal",
+                password: "OtherPass@1234"
+            });
+        } catch (e) {
+            dupEmailBlocked = e.message.includes("Database Constraint Violation");
+        }
+        assert(dupEmailBlocked, "Duplicate email registration rejected by database constraint");
+
+        // 5. Login matching: verify correct credentials against database hash
+        const verifiedLogin = DatabaseEngine.verifyAndLogin("fin_lead", "SecurePass@2026");
+        assert(verifiedLogin.username === "fin_lead", "Database verified login with correct salted hash match");
+        assert(verifiedLogin.lastLogin && verifiedLogin.lastLogin.length > 0, "Database updated last_login timestamp on successful login");
+
+        // 6. Login failure: wrong password rejected
+        let wrongPassBlocked = false;
+        try {
+            DatabaseEngine.verifyAndLogin("fin_lead", "WrongPassword@1234");
+        } catch (e) {
+            wrongPassBlocked = e.message.includes("Authentication Failed: Incorrect password");
+        }
+        assert(wrongPassBlocked, "Incorrect password rejected by database credential match");
+
+        // 7. Login failure: non-existent user rejected
+        let nonExistentBlocked = false;
+        try {
+            DatabaseEngine.verifyAndLogin("unknown_ghost_user", "AnyPassword@1234");
+        } catch (e) {
+            nonExistentBlocked = e.message.includes("does not exist in the database");
+        }
+        assert(nonExistentBlocked, "Non-existent user rejected with registration prompt");
+
+        // 8. AuthManager Integration
+        const authRes = await AuthManager.login("fin_lead", "SecurePass@2026");
+        assert(authRes.success === true && authRes.source === "ReconcileX Database", "AuthManager successfully logged in via ReconcileX Database");
 
         // Summary
         console.log("\\n==============================================");

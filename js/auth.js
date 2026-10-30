@@ -86,9 +86,12 @@ const AuthManager = (() => {
     }
 
     async function login(usernameOrEmail, password) {
+        if (!usernameOrEmail || !password) {
+            throw new Error("Login Error: Username or Email and password are required.");
+        }
         const key = usernameOrEmail.trim().toLowerCase();
 
-        // 1. Try Java REST API if available
+        // 1. Try Java / REST API if available
         try {
             const res = await fetch(`${API_BASE}/auth/login`, {
                 method: "POST",
@@ -99,48 +102,29 @@ const AuthManager = (() => {
                 const data = await res.json();
                 if (data.success && data.user) {
                     saveUserToStorage(data.user);
-                    return { success: true, user: data.user, source: "MySQL Database" };
+                    return { success: true, user: data.user, source: "MySQL Database Server" };
                 }
             }
         } catch (e) {
-            // Server offline, use local auth fallback
+            // Server offline, use Relational Database Engine fallback
         }
 
-        // 2. Local Fallback Auth
-        const found = DEMO_USERS.find(u => 
-            (u.username.toLowerCase() === key || u.email.toLowerCase() === key) && u.password === password
-        );
-
-        if (found) {
-            const safeUser = {
-                id: found.id,
-                username: found.username,
-                email: found.email,
-                fullName: found.fullName,
-                role: found.role
-            };
-            saveUserToStorage(safeUser);
-            return { success: true, user: safeUser, source: "Secure Local Session" };
+        // 2. Query Relational Database Table & Verify Cryptographic Credentials
+        if (typeof DatabaseEngine !== "undefined") {
+            const verifiedUser = DatabaseEngine.verifyAndLogin(key, password);
+            saveUserToStorage(verifiedUser);
+            return { success: true, user: verifiedUser, source: "ReconcileX Database" };
         }
 
-        // Check custom registered users in LocalStorage
-        try {
-            const localUsers = JSON.parse(localStorage.getItem("reconcilex_custom_users") || "[]");
-            const match = localUsers.find(u => 
-                (u.username.toLowerCase() === key || u.email.toLowerCase() === key) && u.password === password
-            );
-            if (match) {
-                const safeUser = { id: match.id, username: match.username, email: match.email, fullName: match.fullName, role: match.role };
-                saveUserToStorage(safeUser);
-                return { success: true, user: safeUser, source: "Secure Local Session" };
-            }
-        } catch (e) {}
-
-        throw new Error("Invalid username or password. (Hint: Try demo user: analyst / Admin@1234)");
+        throw new Error("Authentication Failed: Database Engine is not available.");
     }
 
     async function register(username, email, password, fullName, role) {
-        // 1. Try Java API
+        if (!username || !email || !password) {
+            throw new Error("Registration Error: Username, Corporate Email, and Password are required.");
+        }
+
+        // 1. Try Java / REST API if available
         try {
             const res = await fetch(`${API_BASE}/auth/register`, {
                 method: "POST",
@@ -151,31 +135,25 @@ const AuthManager = (() => {
                 const data = await res.json();
                 if (data.success && data.user) {
                     saveUserToStorage(data.user);
-                    return { success: true, user: data.user };
+                    return { success: true, user: data.user, source: "MySQL Database Server" };
                 }
             }
         } catch (e) {}
 
-        // 2. Local Fallback
-        const localUsers = JSON.parse(localStorage.getItem("reconcilex_custom_users") || "[]");
-        if (localUsers.some(u => u.username.toLowerCase() === username.toLowerCase() || u.email.toLowerCase() === email.toLowerCase())) {
-            throw new Error("Username or Email already registered.");
+        // 2. Insert into Relational Database Table with Salted SHA-256 Cryptographic Hash
+        if (typeof DatabaseEngine !== "undefined") {
+            const newUser = DatabaseEngine.registerUser({
+                username,
+                email,
+                password,
+                fullName,
+                role
+            });
+            saveUserToStorage(newUser);
+            return { success: true, user: newUser, source: "ReconcileX Database" };
         }
 
-        const newUser = {
-            id: Date.now(),
-            username,
-            email,
-            password,
-            fullName: fullName || username,
-            role: role || "FINANCIAL_ANALYST"
-        };
-        localUsers.push(newUser);
-        localStorage.setItem("reconcilex_custom_users", JSON.stringify(localUsers));
-
-        const safeUser = { id: newUser.id, username: newUser.username, email: newUser.email, fullName: newUser.fullName, role: newUser.role };
-        saveUserToStorage(safeUser);
-        return { success: true, user: safeUser };
+        throw new Error("Registration Failed: Database Engine is not available.");
     }
 
     function logout() {
@@ -188,6 +166,7 @@ const AuthManager = (() => {
     }
 
     function updateUI() {
+        if (typeof document === "undefined") return;
         const nameEl = document.getElementById("headerUserName");
         const roleEl = document.getElementById("headerUserRole");
         const avatarEl = document.getElementById("headerUserAvatar");
@@ -240,3 +219,7 @@ const AuthManager = (() => {
         checkBackendHealth
     };
 })();
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = AuthManager;
+}
