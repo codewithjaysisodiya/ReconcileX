@@ -1,0 +1,12 @@
+transaction_id,date,amount,description,reference_number
+TXN101,2026-10-30,15400.50,"Client Contract, Phase 1",REF-901
+TXN102,2026-10-29,3200.00,"Office Rental, Floor 3",REF-902
+TXN103,2026-10-28,450.75,"Domain & DNS Renewal, Cloudflare",REF-903
+TXN104,2026-10-28,9100.00,"Hardware Purchase, GPU Cluster",REF-904
+TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905
+TXN105,2026-10-27,2400.00,"Travel Expenses (DUPLICATE CHARGE)",REF-905-DUP
+TXN106,2026-10-26,5000.00,"Security Audit, Penetration Test",REF-906
+TXN107,2026-10-25,1200.00,"Cafeteria & Pantry Supplies",REF-907
+TXN108,2026-10-24,7850.00,"PR & Media Agency Retainer",REF-908
+TXN109,2026-10-23,3100.00,"Health Insurance Group Policy",REF-909
+TXN110,2026-10-22,640.00,"Courier & Delivery, International",REF-910

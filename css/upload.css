@@ -1,0 +1,260 @@
+/**
+ * ReconcileX - Upload Section Styling
+ * Drag-and-drop zones, file info chips, validation alerts, and templates
+ */
+
+.upload-header {
+    margin-bottom: 24px;
+}
+
+.upload-header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.upload-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* UPLOAD DUAL GRID */
+.upload-dropzones-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.dropzone-card {
+    background: var(--surface-card);
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dropzone-card:hover,
+.dropzone-card.drag-over {
+    border-color: var(--primary);
+    background: var(--surface-hover);
+    box-shadow: 0 0 25px var(--primary-glow);
+    transform: translateY(-2px);
+}
+
+.dropzone-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background: rgba(56, 189, 248, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--primary);
+    margin-bottom: 16px;
+    transition: var(--transition);
+}
+
+.dropzone-card:hover .dropzone-icon {
+    transform: scale(1.08);
+    background: rgba(56, 189, 248, 0.15);
+}
+
+.dropzone-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.dropzone-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    max-width: 320px;
+}
+
+.dropzone-browse-btn {
+    background: var(--surface-light);
+    border: 1px solid var(--border-color);
+    color: var(--primary);
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    transition: var(--transition);
+}
+
+.dropzone-card:hover .dropzone-browse-btn {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--primary);
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+/* FILE LOADED BADGE */
+.file-loaded-container {
+    width: 100%;
+    margin-top: 14px;
+}
+
+.file-loaded-badge {
+    background: var(--surface-light);
+    border: 1px solid var(--border-highlight);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    width: 100%;
+}
+
+.file-loaded-badge .file-icon {
+    font-size: 20px;
+    color: var(--primary);
+}
+
+.file-loaded-badge .file-details {
+    flex: 1;
+    overflow: hidden;
+}
+
+.file-loaded-badge .file-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-loaded-badge .file-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.btn-remove-file {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.btn-remove-file:hover {
+    color: var(--red);
+    background: rgba(244, 63, 94, 0.12);
+}
+
+/* VALIDATION ALERT */
+.alert-box {
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.alert-box.alert-error {
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: #fecdd3;
+}
+.alert-box.alert-error .alert-icon {
+    color: var(--red);
+    font-size: 18px;
+    margin-top: 1px;
+}
+
+.alert-box.alert-warning {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
+}
+.alert-box.alert-warning .alert-icon {
+    color: var(--yellow);
+    font-size: 18px;
+    margin-top: 1px;
+}
+
+/* TEMPLATE LINKS BAR */
+.upload-templates-bar {
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.templates-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.templates-info i {
+    color: var(--cyan);
+    font-size: 16px;
+}
+
+.templates-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-template-dl {
+    background: var(--surface-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition);
+}
+
+.btn-template-dl:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* RECONCILE BUTTON STRIP */
+.upload-cta-strip {
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+    padding-top: 12px;
+}
+
+.btn-run-reconcile {
+    padding: 14px 32px;
+    font-size: 15px;
+}

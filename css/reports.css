@@ -1,0 +1,150 @@
+/**
+ * ReconcileX - Reports & Export Section Styling
+ */
+
+.reports-header {
+    margin-bottom: 24px;
+}
+
+.reports-header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.reports-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* REPORTS CARDS GRID */
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.report-export-card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-card);
+    transition: var(--transition);
+}
+
+.report-export-card:hover {
+    border-color: var(--border-highlight);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.card-top {
+    margin-bottom: 20px;
+}
+
+.format-badge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.format-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.tag-csv {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--green);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.tag-pdf {
+    background: rgba(244, 63, 94, 0.12);
+    color: var(--red);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.record-count-indicator {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.report-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: rgba(56, 189, 248, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--primary);
+    margin-bottom: 14px;
+}
+
+.report-export-card.card-pdf .report-card-icon {
+    background: rgba(244, 63, 94, 0.08);
+    color: var(--red);
+}
+
+.report-export-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.report-export-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.btn-download-report {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+/* PDF PREVIEW SUMMARY BANNER */
+.pdf-preview-box {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(99, 102, 241, 0.1));
+    border: 1px solid var(--border-highlight);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.pdf-preview-info h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+
+.pdf-preview-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}

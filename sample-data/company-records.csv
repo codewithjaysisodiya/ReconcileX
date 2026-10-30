@@ -1,0 +1,10 @@
+transaction_id,date,amount,description,reference_number
+TXN001,2026-10-30,5000,Client Retainer Fee,REF-1001
+TXN002,2026-10-30,2500,Cloud Infrastructure AWS,REF-1002
+TXN003,2026-10-30,2800,Office Supplies Global,REF-1003
+TXN005,2026-10-30,4000,Legal Advisory Retainer,REF-1005
+TXN006,2026-10-25,12500,Consulting Services Acme,REF-1006
+TXN007,2026-10-28,450,Courier Logistics Express,REF-1007
+TXN008,2026-10-27,8200,Marketing Campaign Ads,REF-1008
+TXN009,2026-10-24,1750,Utility Electric Bill,REF-1009
+TXN011,2026-10-25,6200,Contractor Stipend Dev,REF-1011

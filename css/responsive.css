@@ -1,0 +1,176 @@
+/**
+ * ReconcileX - Responsive Styles & Mobile Navigation
+ */
+
+/* Breakpoint 1200px: Large Tablets / Small Laptops */
+@media (max-width: 1200px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .analytics-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .reports-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Breakpoint 992px: Tablets & Small Screens */
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 260px;
+    }
+
+    .app-sidebar {
+        transform: translateX(-100%);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .app-sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    .app-main {
+        margin-left: 0;
+    }
+
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    .content-body {
+        padding: 24px 20px;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .volume-strip {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .volume-col:not(:last-child) {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        padding-right: 0;
+    }
+}
+
+/* Breakpoint 768px: Mobile Landscape & Large Phones */
+@media (max-width: 768px) {
+    .app-topbar {
+        padding: 0 16px;
+    }
+
+    .dashboard-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .dashboard-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .upload-dropzones-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input-wrap {
+        max-width: 100%;
+        min-width: 100%;
+    }
+
+    .date-range-wrap {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .upload-templates-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .templates-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .btn-template-dl {
+        justify-content: center;
+    }
+
+    .pdf-preview-box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .user-profile-widget .user-details {
+        display: none;
+    }
+}
+
+/* Breakpoint 480px: Small Phones */
+@media (max-width: 480px) {
+    .content-body {
+        padding: 16px 12px;
+    }
+
+    .kpi-card {
+        padding: 16px;
+    }
+
+    .kpi-value {
+        font-size: 22px;
+    }
+
+    .chart-card {
+        padding: 16px;
+        min-height: 280px;
+    }
+
+    .modal-card {
+        padding: 0;
+    }
+
+    .modal-body {
+        padding: 16px;
+    }
+
+    .btn-quick-action span {
+        display: none;
+    }
+}
