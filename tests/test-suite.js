@@ -429,6 +429,42 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
         }
         assert(badFileRejected, "Safely rejected unsupported file format (.exe) with clear guidance");
 
+        // ----------------------------------------------------
+        // TEST 13: Flexible Column Mapping & Secondary Field Reconciliation
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Flexible Column Mapping & Secondary Field Reconciliation...");
+
+        // 1. Real-world Bank Statement with split Withdrawal/Deposit and extra columns (no 'transaction_id', no 'amount')
+        const realWorldBankCSV = "Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balance\\n" +
+            "2026-10-30,Salary Credit Acme Corp,REF-8801,2026-10-30,,45000.00,85400.50\\n" +
+            "2026-10-29,Electricity Bill Discom,REF-8802,2026-10-29,3200.00,,82200.50";
+        const parsedRealBank = await CSVReader.parseCSVText(realWorldBankCSV);
+        const valRealBank = Validation.validateDataset(parsedRealBank.data, parsedRealBank.headers, "Bank Statement");
+        assert(valRealBank.valid && valRealBank.validRows.length === 2, "Real-world Bank statement with Withdrawal/Deposit parsed without error");
+        assert(valRealBank.validRows[0].amount === 45000, "Amount resolved from Deposit Amt: 45000");
+        assert(valRealBank.validRows[1].amount === 3200, "Amount resolved from Withdrawal Amt: 3200");
+        assert(valRealBank.validRows[0]["Closing Balance"] === "85400.50", "Extra column 'Closing Balance' preserved accurately");
+
+        // 2. Bank statement with NO transaction_id column at all
+        const noIdBankCSV = "Date,Particulars,Amount,Current_Balance\\n" +
+            "2026-10-30,Internet Fiber Lease,1800.00,45000.00\\n" +
+            "2026-10-28,Office Stationery,450.00,44550.00";
+        const parsedNoId = await CSVReader.parseCSVText(noIdBankCSV);
+        const valNoId = Validation.validateDataset(parsedNoId.data, parsedNoId.headers, "Bank Statement");
+        assert(valNoId.valid && valNoId.validRows.length === 2, "Bank statement without ID column validated successfully");
+        assert(valNoId.validRows[0].transaction_id.startsWith("BNK-"), "Auto-generated transaction ID: " + valNoId.validRows[0].transaction_id);
+
+        // 3. Reconciling Bank (with auto-generated IDs) against Company Ledger (with voucher IDs)
+        const compVoucherCSV = "Voucher_No,Posting_Date,Net_Amount,Details\\n" +
+            "VCH-901,2026-10-30,1800.00,Internet Fiber Lease\\n" +
+            "VCH-902,2026-10-28,450.00,Office Stationery";
+        const parsedCompVoucher = await CSVReader.parseCSVText(compVoucherCSV);
+        const valCompVoucher = Validation.validateDataset(parsedCompVoucher.data, parsedCompVoucher.headers, "Company Records");
+
+        const reconCrossField = ReconciliationEngine.reconcile(valNoId.validRows, valCompVoucher.validRows, { amountTolerance: 0, dateToleranceDays: 0 });
+        const matchedCross = reconCrossField.results.filter(x => x.status === "matched");
+        assert(matchedCross.length === 2, "Smart Secondary Field Match successfully paired both records on Amount & Date");
+
         // Summary
         console.log("\\n==============================================");
         console.log("TEST SUMMARY: " + passedTests + " PASSED, " + failedTests + " FAILED");

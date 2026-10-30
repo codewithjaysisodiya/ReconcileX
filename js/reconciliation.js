@@ -230,11 +230,101 @@ const ReconciliationEngine = (() => {
             }
         });
 
-        // 5. Compute dynamic statistical summaries
-        const statistics = computeStatistics(results, bankRecords, companyRecords);
+        // 5. Smart Secondary Field Matching:
+        // Automatically pairs unmatched bank and company entries if amounts and dates match within tolerance
+        const unmatchedBankIndices = [];
+        const unmatchedCompIndices = [];
+
+        results.forEach((res, idx) => {
+            if (res.status === "unmatched_bank" && res.bankAmount !== null && res.bankAmount !== undefined) {
+                unmatchedBankIndices.push(idx);
+            } else if (res.status === "unmatched_company" && res.companyAmount !== null && res.companyAmount !== undefined) {
+                unmatchedCompIndices.push(idx);
+            }
+        });
+
+        const bankMatchedSet = new Set();
+        const compMatchedSet = new Set();
+        const pairedResults = [];
+
+        for (const bIdx of unmatchedBankIndices) {
+            const bItem = results[bIdx];
+            let bestCompIdx = null;
+            let bestScore = -1;
+
+            for (const cIdx of unmatchedCompIndices) {
+                if (compMatchedSet.has(cIdx)) continue;
+                const cItem = results[cIdx];
+
+                const amountDiff = Math.abs(bItem.bankAmount - cItem.companyAmount);
+                const isAmountMatch = amountDiff <= amountTolerance;
+                const dateDiff = Math.abs(getDaysDifference(bItem.bankDate, cItem.companyDate));
+                const isDateMatch = dateDiff <= dateToleranceDays;
+
+                if (isAmountMatch && isDateMatch) {
+                    let score = 100 - (amountDiff * 5) - (dateDiff * 5);
+                    if (bItem.bankReference && cItem.companyReference && bItem.bankReference === cItem.companyReference) {
+                        score += 50;
+                    }
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCompIdx = cIdx;
+                    }
+                }
+            }
+
+            if (bestCompIdx !== null) {
+                bankMatchedSet.add(bIdx);
+                compMatchedSet.add(bestCompIdx);
+
+                const cItem = results[bestCompIdx];
+                const amountDiff = Math.abs(bItem.bankAmount - cItem.companyAmount);
+                const dateDiff = Math.abs(getDaysDifference(bItem.bankDate, cItem.companyDate));
+                const difference = Math.round((bItem.bankAmount - cItem.companyAmount) * 100) / 100;
+
+                const status = (amountDiff <= amountTolerance && dateDiff <= dateToleranceDays)
+                    ? "matched"
+                    : (amountDiff > amountTolerance ? "amount_mismatch" : "date_mismatch");
+
+                const statusMeta = STATUS_MAP[status];
+                const note = (amountDiff === 0 && dateDiff === 0)
+                    ? `Field Match: Exact amount (${bItem.bankAmount.toFixed(2)}) & date (${bItem.bankDate}) matched.`
+                    : `Field Match: Matched within tolerance (Amount diff: ${amountDiff.toFixed(2)}, Date diff: ${dateDiff}d).`;
+
+                pairedResults.push({
+                    id: `${bItem.transactionId}_${cItem.transactionId}`,
+                    transactionId: bItem.transactionId === cItem.transactionId ? bItem.transactionId : `${bItem.transactionId} / ${cItem.transactionId}`,
+                    bankAmount: bItem.bankAmount,
+                    companyAmount: cItem.companyAmount,
+                    difference,
+                    bankDate: bItem.bankDate,
+                    companyDate: cItem.companyDate,
+                    daysDifference: dateDiff,
+                    dateDiffDays: dateDiff,
+                    bankDescription: bItem.bankDescription,
+                    companyDescription: cItem.companyDescription,
+                    bankReference: bItem.bankReference,
+                    companyReference: cItem.companyReference,
+                    status,
+                    statusLabel: statusMeta.label,
+                    badgeClass: statusMeta.badgeClass,
+                    severity: statusMeta.severity,
+                    notes: note
+                });
+            }
+        }
+
+        let reconciledResults = results;
+        if (bankMatchedSet.size > 0 || compMatchedSet.size > 0) {
+            reconciledResults = results.filter((_, idx) => !bankMatchedSet.has(idx) && !compMatchedSet.has(idx));
+            reconciledResults.push(...pairedResults);
+        }
+
+        // 6. Compute dynamic statistical summaries
+        const statistics = computeStatistics(reconciledResults, bankRecords, companyRecords);
 
         return {
-            results,
+            results: reconciledResults,
             statistics,
             optionsUsed: {
                 amountTolerance,
