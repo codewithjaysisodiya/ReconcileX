@@ -124,27 +124,3 @@
     cursor: pointer;
     transition: var(--transition);
 }
-
-/* PDF PREVIEW SUMMARY BANNER */
-.pdf-preview-box {
-    background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(99, 102, 241, 0.1));
-    border: 1px solid var(--border-highlight);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-}
-
-.pdf-preview-info h3 {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-}
-
-.pdf-preview-info p {
-    font-size: 13px;
-    color: var(--text-secondary);
-}
