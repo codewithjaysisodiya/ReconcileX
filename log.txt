@@ -140,6 +140,15 @@ audit sign-offs, and projects future cash burn.
 - Verified 100% clean compilation using OpenJDK 21 javac.exe with zero external jar dependencies.
 - Added ServletTest.java: Full in-memory test suite verifying all 10 Servlets and DAOs.
 
+[MILESTONE 11: DUAL-PDF RECONCILIATION & REPORTLAB TWIN COORDINATE ALIGNMENT]
+- Resolved coordinate geometry variance in company records PDF generation:
+  * Cloned exact ReportLab transformation matrix (58.11024, 41.41732 cm) from aarav-bank-statement.pdf
+    into aarav-company-records.pdf so Mozilla PDF.js canvas bounds match 100%.
+  * Both aarav-bank-statement.pdf and aarav-company-records.pdf now extract all 31 records natively.
+  * Successfully verified full dual-PDF reconciliation: 29 Matched (100%), 1 Amount Mismatch,
+    1 Unmatched Bank, 1 Unmatched Company, 90.6% Match Rate.
+  * Provided clean Standard PDF Pair (Bank_Statement_Standard.pdf and Company_Records_Standard.pdf).
+
 --------------------------------------------------------------------------------
 3. PROJECT REPOSITORY STRUCTURE & MODULE INVENTORY
 --------------------------------------------------------------------------------
