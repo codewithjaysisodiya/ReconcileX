@@ -164,9 +164,17 @@ const PDFExtractor = (() => {
                     } catch (e2) {
                         try {
                             uncompressed = zlib.inflateRawSync(buf.slice(start, eIdx)).toString("utf8");
-                        } catch (e3) {}
+                        } catch (e3) {
+                            uncompressed = chunk;
+                        }
                     }
                 }
+            } else {
+                uncompressed = chunk;
+            }
+
+            if (!uncompressed) {
+                uncompressed = chunk;
             }
 
             if (uncompressed) {
