@@ -30,8 +30,10 @@ const Dashboard = (() => {
         dom.emptyState = document.getElementById("dashboardEmptyState");
         dom.dashboardContent = document.getElementById("dashboardActiveContent");
         dom.totalCount = document.getElementById("kpiTotalCount");
+        dom.totalSubtitle = document.getElementById("kpiTotalSubtitle");
         dom.matchedCount = document.getElementById("kpiMatchedCount");
         dom.unmatchedCount = document.getElementById("kpiUnmatchedCount");
+        dom.unmatchedSubtitle = document.getElementById("kpiUnmatchedSubtitle");
         dom.mismatchCount = document.getElementById("kpiMismatchCount");
         dom.duplicateCount = document.getElementById("kpiDuplicateCount");
         dom.matchPercentage = document.getElementById("kpiMatchPercentage");
@@ -90,8 +92,15 @@ const Dashboard = (() => {
 
         // Update KPI Cards
         animateCounter(dom.totalCount, statistics.totalProcessedRows || 0);
+        if (dom.totalSubtitle) {
+            dom.totalSubtitle.innerHTML = `Bank: <strong>${statistics.totalBankRecords || 0}</strong> • Company: <strong>${statistics.totalCompanyRecords || 0}</strong>`;
+        }
+
         animateCounter(dom.matchedCount, statistics.matchedCount || 0);
         animateCounter(dom.unmatchedCount, statistics.totalUnmatchedCount || 0);
+        if (dom.unmatchedSubtitle) {
+            dom.unmatchedSubtitle.innerHTML = `Bank: <strong>${statistics.unmatchedBankCount || 0}</strong> • Company: <strong>${statistics.unmatchedCompanyCount || 0}</strong>`;
+        }
         animateCounter(dom.mismatchCount, (statistics.amountMismatchCount || 0) + (statistics.dateMismatchCount || 0) + (statistics.multipleIssuesCount || 0));
         animateCounter(dom.duplicateCount, statistics.duplicateCount || 0);
 

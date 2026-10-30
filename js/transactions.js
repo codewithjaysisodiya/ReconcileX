@@ -217,7 +217,9 @@ const TransactionsUI = (() => {
         });
 
         if (dom.totalRecordsBadge) {
-            dom.totalRecordsBadge.textContent = `${filteredResults.length} records`;
+            dom.totalRecordsBadge.textContent = filteredResults.length === allResults.length
+                ? `${filteredResults.length} audit entries`
+                : `${filteredResults.length} of ${allResults.length} audit entries`;
         }
 
         applySorting();

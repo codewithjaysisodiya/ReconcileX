@@ -275,9 +275,14 @@ const ReconciliationEngine = (() => {
 
                 if (isAmountMatch && isDateMatch) {
                     let score = 100 - (amountDiff * 5) - (dateDiff * 5);
-                    if (bItem.bankReference && cItem.companyReference && bItem.bankReference === cItem.companyReference) {
-                        score += 50;
-                    }
+                    const bRef = String(bItem.bankReference || "").trim().toUpperCase();
+                    const cRef = String(cItem.companyReference || "").trim().toUpperCase();
+                    const bId = String(bItem.transactionId || "").trim().toUpperCase();
+                    const cId = String(cItem.transactionId || "").trim().toUpperCase();
+
+                    if (bRef && cRef && bRef === cRef) score += 50;
+                    if (bRef && cId && bRef === cId) score += 60;
+                    if (bId && cRef && bId === cRef) score += 60;
                     if (score > bestScore) {
                         bestScore = score;
                         bestCompIdx = cIdx;

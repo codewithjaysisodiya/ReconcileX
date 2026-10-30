@@ -12,6 +12,7 @@ const Validation = (() => {
     const HEADER_ALIASES = {
         transaction_id: [
             "transaction_id", "transactionid", "txnid", "txn_id", "id", "trans_id",
+            "bank_reference", "bank_ref", "bank_ref_no", "bank_txn_id",
             "reference_id", "ref_id", "ref_no", "ref_num", "reference_number", "reference",
             "cheque_no", "chq_no", "chq_ref_no", "cheque_ref_no", "utr", "utr_no",
             "transaction_no", "txn_no", "trans_no", "journal_no", "doc_no", "document_no",
@@ -289,3 +290,7 @@ const Validation = (() => {
         validateDataset
     };
 })();
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = Validation;
+}

@@ -395,7 +395,7 @@ const PDFExtractor = (() => {
 
             // Pattern 1: [ID] [Amount] [Date] [Description] (Aarav Technologies format)
             // e.g. AARAV-TXN-0001 7991.89 2026-10-11 Office rent
-            const p1 = /^([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+)$/i;
+            const p1 = /^([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+)$/i;
             let m = trimmed.match(p1);
             if (m) {
                 rows.push({
@@ -409,7 +409,7 @@ const PDFExtractor = (() => {
             }
 
             // Pattern 2: [Date] [Description] [Amount] [ID]
-            const p2 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+?)\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+([A-Za-z0-9_\-#]{2,40})$/i;
+            const p2 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+?)\s+([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\s+([A-Za-z0-9_\-#]{2,40})$/i;
             m = trimmed.match(p2);
             if (m) {
                 rows.push({
@@ -423,7 +423,7 @@ const PDFExtractor = (() => {
             }
 
             // Pattern 3: [Date] [ID] [Amount] [Description]
-            const p3 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(.+)$/i;
+            const p3 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\s+(.+)$/i;
             m = trimmed.match(p3);
             if (m) {
                 rows.push({
@@ -437,7 +437,7 @@ const PDFExtractor = (() => {
             }
 
             // Pattern 4: [ID] [Date] [Amount] [Description]
-            const p4 = /^([A-Za-z0-9_\-#]{2,40})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(.+)$/i;
+            const p4 = /^([A-Za-z0-9_\-#]{2,40})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\s+(.+)$/i;
             m = trimmed.match(p4);
             if (m) {
                 rows.push({
@@ -452,7 +452,7 @@ const PDFExtractor = (() => {
 
             // Pattern 5: Flexible token matching for any line containing a date and amount
             const dateRegex = /\b(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\b/;
-            const amountRegex = /\b([₹$€£]?\s*(?:\d{1,3}(?:,\d{3})*|\d+)\.\d{2})\b/;
+            const amountRegex = /\b([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\b/;
             const dateMatch = trimmed.match(dateRegex);
             const amountMatch = trimmed.match(amountRegex);
 
@@ -497,7 +497,7 @@ const PDFExtractor = (() => {
 
         // Stream fallback: If line-by-line matched fewer than 2 rows but the rawText is large (unseparated stream)
         if (rows.length < 2 && rawText.length > 80) {
-            const streamPattern = /(?:^|\s+)([A-Za-z0-9_\-]{3,35})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([\s\S]*?)(?=(?:\s+[A-Za-z0-9_\-]{3,35}\s+[₹$€£]?\s*[\d,]+\.\d{2}\s+(?:\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}))|$)/gi;
+            const streamPattern = /(?:^|\s+)([A-Za-z0-9_\-]{3,35})\s+([₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?)\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([\s\S]*?)(?=(?:\s+[A-Za-z0-9_\-]{3,35}\s+[₹$€£]?\s*-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,4})?\s+(?:\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}))|$)/gi;
             let sm;
             while ((sm = streamPattern.exec(rawText)) !== null) {
                 rows.push({
