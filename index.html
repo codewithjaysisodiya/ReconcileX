@@ -344,7 +344,7 @@
                 <section class="view-section" id="view-reconciliation">
                     <div class="upload-header">
                         <h1>Upload Financial Records</h1>
-                        <p>Select or drag-and-drop your Bank Statement and Company Records CSV files for automated reconciliation.</p>
+                        <p>Select or drag-and-drop your Bank Statement and Company Records (CSV, PDF, TXT, DOCX) for automated reconciliation.</p>
                     </div>
 
                     <!-- VALIDATION ALERT -->
@@ -355,35 +355,53 @@
 
                         <!-- Bank Dropzone -->
                         <div class="dropzone-card" id="bankDropzone">
-                            <input type="file" id="bankFileInput" class="hidden-file-input" accept=".csv">
+                            <input type="file" id="bankFileInput" class="hidden-file-input" accept=".csv,.txt,.tsv,.pdf,.doc,.docx,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
                             <input type="file" id="bankPdfInput" class="hidden-file-input" accept=".pdf" onchange="handleBankPdfSelected(event)">
                             <div class="dropzone-icon">
                                 <i class="fas fa-university"></i>
                             </div>
-                            <h3 class="dropzone-title">Bank Statement (CSV / PDF)</h3>
-                            <p class="dropzone-sub">Upload bank statement CSV or PDF e-statement. Auto-extracts transaction rows.</p>
-                            <div style="display: flex; gap: 8px;">
+                            <h3 class="dropzone-title">Bank Statement (CSV, PDF, TXT, DOCX)</h3>
+                            <p class="dropzone-sub">Upload bank statement as CSV, PDF, Text, or Word Document. Auto-extracts transaction rows.</p>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button type="button" class="dropzone-browse-btn">
-                                    <i class="fas fa-folder-open"></i> Browse CSV
+                                    <i class="fas fa-folder-open"></i> Browse Files
                                 </button>
                                 <button type="button" class="btn-upload-pdf-toggle" onclick="event.stopPropagation(); document.getElementById('bankPdfInput').click()">
                                     <i class="fas fa-file-pdf"></i> Upload PDF
                                 </button>
+                            </div>
+                            <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+                                <span class="status-badge badge-matched" style="font-size: 10px;"><i class="fas fa-file-csv"></i> CSV</span>
+                                <span class="status-badge badge-unmatched-bank" style="font-size: 10px;"><i class="fas fa-file-pdf"></i> PDF</span>
+                                <span class="status-badge badge-date-mismatch" style="font-size: 10px;"><i class="fas fa-file-alt"></i> TXT</span>
+                                <span class="status-badge badge-matched" style="font-size: 10px;"><i class="fas fa-file-word"></i> DOCX</span>
                             </div>
                             <div id="bankFileInfo" class="file-loaded-container" style="display: none;"></div>
                         </div>
 
                         <!-- Company Records Dropzone -->
                         <div class="dropzone-card" id="companyDropzone">
-                            <input type="file" id="companyFileInput" class="hidden-file-input" accept=".csv">
+                            <input type="file" id="companyFileInput" class="hidden-file-input" accept=".csv,.txt,.tsv,.pdf,.doc,.docx,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            <input type="file" id="companyPdfInput" class="hidden-file-input" accept=".pdf" onchange="handleCompanyPdfSelected(event)">
                             <div class="dropzone-icon">
                                 <i class="fas fa-building"></i>
                             </div>
-                            <h3 class="dropzone-title">Company Records CSV</h3>
-                            <p class="dropzone-sub">Upload internal ledger or ERP records. Requires transaction_id, date, amount, description.</p>
-                            <button type="button" class="dropzone-browse-btn">
-                                <i class="fas fa-folder-open"></i> Browse File
-                            </button>
+                            <h3 class="dropzone-title">Company Records (CSV, PDF, TXT, DOCX)</h3>
+                            <p class="dropzone-sub">Upload internal ledger or ERP records as CSV, PDF, Text, or Word Document.</p>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="dropzone-browse-btn">
+                                    <i class="fas fa-folder-open"></i> Browse Files
+                                </button>
+                                <button type="button" class="btn-upload-pdf-toggle" onclick="event.stopPropagation(); document.getElementById('companyPdfInput').click()">
+                                    <i class="fas fa-file-pdf"></i> Upload PDF
+                                </button>
+                            </div>
+                            <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+                                <span class="status-badge badge-matched" style="font-size: 10px;"><i class="fas fa-file-csv"></i> CSV</span>
+                                <span class="status-badge badge-unmatched-bank" style="font-size: 10px;"><i class="fas fa-file-pdf"></i> PDF</span>
+                                <span class="status-badge badge-date-mismatch" style="font-size: 10px;"><i class="fas fa-file-alt"></i> TXT</span>
+                                <span class="status-badge badge-matched" style="font-size: 10px;"><i class="fas fa-file-word"></i> DOCX</span>
+                            </div>
                             <div id="companyFileInfo" class="file-loaded-container" style="display: none;"></div>
                         </div>
 
@@ -1138,6 +1156,7 @@
     <script src="js/duplicateDetector.js"></script>
     <script src="js/reconciliation.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/pdfExtractor.js"></script>
     <script src="js/csvReader.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/dashboard.js"></script>
@@ -1148,7 +1167,6 @@
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/diagnostics.js"></script>
-    <script src="js/pdfExtractor.js"></script>
     <script src="js/forecasting.js"></script>
     <script src="js/auditWorkflow.js"></script>
     <script src="js/app.js"></script>
@@ -1264,16 +1282,13 @@
         async function handleBankPdfSelected(e) {
             const file = e.target.files[0];
             if (!file) return;
-            try {
-                App.showToast(`Extracting bank statement PDF "${file.name}"...`, "info");
-                const rows = await PDFExtractor.extractTransactionsFromPDF(file);
-                const csvString = PDFExtractor.convertToCSVString(rows);
-                const pseudoFile = new File([csvString], file.name.replace(/\.pdf$/i, ".csv"), { type: "text/csv" });
-                await App.handleBankFileSelected(pseudoFile);
-                App.showToast(`Successfully extracted ${rows.length} transactions from PDF!`, "success");
-            } catch (err) {
-                App.showToast(`PDF Extraction error: ${err.message}`, "danger");
-            }
+            await App.handleBankFileSelected(file);
+        }
+
+        async function handleCompanyPdfSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            await App.handleCompanyFileSelected(file);
         }
     </script>
 

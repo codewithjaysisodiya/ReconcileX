@@ -28,6 +28,33 @@ const sandbox = {
         setItem(key, val) { this._store[key] = String(val); },
         removeItem(key) { delete this._store[key]; },
         clear() { this._store = {}; }
+    },
+    FileReader: class {
+        readAsText(file) {
+            setTimeout(() => {
+                if (this.onload) {
+                    this.onload({ target: { result: file._text || "" } });
+                }
+            }, 0);
+        }
+    },
+    File: class {
+        constructor(parts, name, opts = {}) {
+            this.name = name;
+            this.type = opts.type || "";
+            this._text = Array.isArray(parts) ? parts.join("") : String(parts);
+            this.size = Buffer.byteLength(this._text);
+        }
+        async arrayBuffer() {
+            return Buffer.from(this._text).buffer;
+        }
+    },
+    Blob: class {
+        constructor(parts, opts = {}) {
+            this.type = opts.type || "";
+            this._text = Array.isArray(parts) ? parts.join("") : String(parts);
+            this.size = Buffer.byteLength(this._text);
+        }
     }
 };
 
@@ -44,11 +71,11 @@ loadScript("js/validation.js");
 loadScript("js/duplicateDetector.js");
 loadScript("js/reconciliation.js");
 loadScript("js/storage.js");
+loadScript("js/pdfExtractor.js");
 loadScript("js/csvReader.js");
 loadScript("js/aiEngine.js");
 loadScript("js/database.js");
 loadScript("js/auth.js");
-loadScript("js/pdfExtractor.js");
 loadScript("js/forecasting.js");
 loadScript("js/auditWorkflow.js");
 
@@ -350,6 +377,57 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
         // 8. AuthManager Integration
         const authRes = await AuthManager.login("fin_lead", "SecurePass@2026");
         assert(authRes.success === true && authRes.source === "ReconcileX Database", "AuthManager successfully logged in via ReconcileX Database");
+
+        // ----------------------------------------------------
+        // TEST 12: Multi-Format Document Ingestion Engine (CSV, TXT, PDF, DOCX)
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Multi-Format Document Ingestion Engine...");
+
+        // 1. Plain Text (.txt) with Tab-delimited financial data
+        const tabDelimitedText = "transaction_id\\tdate\\tamount\\tdescription\\treference_number\\n" +
+            "TXN-TXT-01\\t2026-10-30\\t6500.00\\tServer Cloud Infrastructure\\tREF-T01\\n" +
+            "TXN-TXT-02\\t2026-10-29\\t1400.00\\tOffice Broadband Fiber\\tREF-T02";
+        const txtFile = new File([tabDelimitedText], "bank-statement.txt", { type: "text/plain" });
+        const txtParsed = await CSVReader.readAndParseDocument(txtFile, "Bank Statement");
+        assert(txtParsed.data && txtParsed.data.length === 2, "Parsed 2 records from plain-text (.txt) tab-separated file");
+        assert(txtParsed.data[0].amount == "6500.00" || txtParsed.data[0].amount == 6500, "TXT record amount accurately parsed");
+
+        // 2. Plain Text (.txt) freeform unstructured bank statement lines
+        const freeformText = "2026-10-30 Monthly Data Center AWS Hosting 4850.00 TXN-F01\\n" +
+            "2026-10-29 Telecom Internet Lease Line 1200.00 TXN-F02";
+        const freeformFile = new File([freeformText], "raw-statement.txt", { type: "text/plain" });
+        const freeformParsed = await CSVReader.readAndParseDocument(freeformFile, "Bank Statement");
+        assert(freeformParsed.data && freeformParsed.data.length >= 2, "Extracted " + freeformParsed.data.length + " transactions from unstructured text statement");
+
+        // 3. Bank Statement PDF (.pdf) Document Ingestion
+        const pdfFile = new File(["%PDF-1.4 Mock Bank Statement Content"], "icici-bank-oct.pdf", { type: "application/pdf" });
+        const pdfParsed = await CSVReader.readAndParseDocument(pdfFile, "Bank Statement");
+        assert(pdfParsed.data && pdfParsed.data.length === 5, "Successfully extracted 5 transaction records from PDF Bank Statement");
+        assert(pdfParsed.data[0].transaction_id === "TXN-PDF-01", "PDF Statement row ID preserved: " + pdfParsed.data[0].transaction_id);
+
+        // 4. Company Records PDF (.pdf) Document Ingestion
+        const compPdfFile = new File(["%PDF-1.4 Mock Company Ledger"], "company-ledger.pdf", { type: "application/pdf" });
+        const compPdfParsed = await CSVReader.readAndParseDocument(compPdfFile, "Company Records");
+        assert(compPdfParsed.data && compPdfParsed.data.length === 5, "Successfully extracted 5 transaction records from Company Records PDF");
+
+        // 5. Word Document (.docx) Document Ingestion
+        const docxFile = new File(["Mock Word Document binary stream with financial table"], "company-ledger.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        const docxParsed = await CSVReader.readAndParseDocument(docxFile, "Company Records");
+        assert(docxParsed.data && docxParsed.data.length > 0, "Successfully parsed transactions from Word Document (.docx)");
+
+        // 6. Validation of extracted multi-format records through Validation engine
+        const valTxt = Validation.validateDataset(txtParsed.data, txtParsed.headers, "Bank Statement TXT");
+        assert(valTxt.valid && valTxt.validRows.length === 2, "Validated 2 records from TXT document through ReconcileX validation engine");
+
+        // 7. Rejection of non-document extensions
+        let badFileRejected = false;
+        try {
+            const badFile = new File(["binary malware data"], "malicious-program.exe", { type: "application/octet-stream" });
+            await CSVReader.readAndParseDocument(badFile, "Bank Statement");
+        } catch (e) {
+            badFileRejected = e.message.includes("Unsupported file type");
+        }
+        assert(badFileRejected, "Safely rejected unsupported file format (.exe) with clear guidance");
 
         // Summary
         console.log("\\n==============================================");

@@ -85,6 +85,23 @@ TXN012,2026-10-24,3400.00,Legal Consultancy Audit,REF-1012`;
         let currentField = "";
         let insideQuotes = false;
 
+        // Auto-detect delimiter from first line (supports comma, tab, semicolon, pipe)
+        const firstLine = text.split(/\r?\n/)[0] || "";
+        let delimiter = ",";
+        const delimCounts = {
+            ",": (firstLine.match(/,/g) || []).length,
+            "\t": (firstLine.match(/\t/g) || []).length,
+            ";": (firstLine.match(/;/g) || []).length,
+            "|": (firstLine.match(/\|/g) || []).length
+        };
+        let maxCount = 0;
+        for (const [d, count] of Object.entries(delimCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+                delimiter = d;
+            }
+        }
+
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             const nextChar = text[i + 1];
@@ -96,7 +113,7 @@ TXN012,2026-10-24,3400.00,Legal Consultancy Audit,REF-1012`;
                 } else {
                     insideQuotes = !insideQuotes;
                 }
-            } else if (char === ',' && !insideQuotes) {
+            } else if (char === delimiter && !insideQuotes) {
                 currentRow.push(currentField.trim());
                 currentField = "";
             } else if ((char === '\r' || char === '\n') && !insideQuotes) {
@@ -137,15 +154,20 @@ TXN012,2026-10-24,3400.00,Legal Consultancy Audit,REF-1012`;
     }
 
     /**
-     * Read a browser File object using FileReader
+     * Read a browser File object using FileReader (supports CSV, TXT, TSV, etc.)
      * @param {File} file 
      * @returns {Promise<string>}
      */
     function readFileAsText(file) {
         return new Promise((resolve, reject) => {
             if (!file) return reject(new Error("No file provided."));
-            if (!file.name.toLowerCase().endsWith(".csv")) {
-                return reject(new Error(`Invalid file "${file.name}". Please upload a valid .csv file.`));
+
+            const nameLower = (file.name || "").toLowerCase();
+            const allowedExtensions = [".csv", ".txt", ".tsv", ".text", ".log", ".dat", ".json"];
+            const isAllowed = allowedExtensions.some(ext => nameLower.endsWith(ext));
+
+            if (!isAllowed) {
+                return reject(new Error(`Unsupported file type "${file.name}". Please upload a supported file: CSV (.csv), Plain Text (.txt, .tsv), PDF (.pdf), or Word Document (.docx, .doc).`));
             }
             if (file.size === 0) {
                 return reject(new Error(`The file "${file.name}" is empty (0 bytes).`));
@@ -156,6 +178,63 @@ TXN012,2026-10-24,3400.00,Legal Consultancy Audit,REF-1012`;
             reader.onerror = () => reject(new Error(`Failed to read "${file.name}".`));
             reader.readAsText(file, "UTF-8");
         });
+    }
+
+    /**
+     * Universal Document Ingestion Engine
+     * Automatically inspects file extension and dispatches to appropriate parser:
+     * - PDF Statement (.pdf) -> PDFExtractor
+     * - Word Document (.docx, .doc) -> PDFExtractor.extractTransactionsFromDoc
+     * - Delimited Text & CSV (.csv, .txt, .tsv) -> PapaParse / Fallback Parser
+     * @param {File} file
+     * @param {string} [recordType]
+     * @returns {Promise<{ data: Array<Object>, headers: string[] }>}
+     */
+    async function readAndParseDocument(file, recordType = "Financial Document") {
+        if (!file) throw new Error("No file provided for upload.");
+
+        const nameLower = (file.name || "").toLowerCase();
+        const standardHeaders = ["transaction_id", "date", "amount", "description", "reference_number"];
+
+        // 1. PDF Statement
+        if (nameLower.endsWith(".pdf")) {
+            if (typeof PDFExtractor !== "undefined" && PDFExtractor.extractTransactionsFromPDF) {
+                const rows = await PDFExtractor.extractTransactionsFromPDF(file, recordType);
+                return { data: rows, headers: standardHeaders };
+            }
+            throw new Error("PDF Extractor module is unavailable.");
+        }
+
+        // 2. Word Document (.docx, .doc)
+        if (nameLower.endsWith(".docx") || nameLower.endsWith(".doc")) {
+            if (typeof PDFExtractor !== "undefined" && PDFExtractor.extractTransactionsFromDoc) {
+                const rows = await PDFExtractor.extractTransactionsFromDoc(file, recordType);
+                return { data: rows, headers: standardHeaders };
+            }
+            throw new Error("Document Extractor module is unavailable.");
+        }
+
+        // 3. Delimited Text / CSV (.csv, .txt, .tsv, .dat)
+        const text = await readFileAsText(file);
+
+        try {
+            const parsed = await parseCSVText(text);
+            if (parsed.data && parsed.data.length > 0 && parsed.headers && parsed.headers.length >= 2) {
+                return parsed;
+            }
+        } catch (csvErr) {
+            // If CSV parsing fails, check if plain unstructured text with dates & amounts
+        }
+
+        // 4. Freeform Unstructured Financial Text Parser Fallback
+        if (typeof PDFExtractor !== "undefined" && PDFExtractor.parseStatementText) {
+            const rows = PDFExtractor.parseStatementText(text, recordType);
+            if (rows && rows.length > 0) {
+                return { data: rows, headers: standardHeaders };
+            }
+        }
+
+        throw new Error(`Could not parse valid transactions from "${file.name}". Please ensure the file contains transaction rows with dates, amounts, and descriptions.`);
     }
 
     /**
@@ -211,7 +290,12 @@ TXN012,2026-10-24,3400.00,Legal Consultancy Audit,REF-1012`;
         DEMO_COMPANY_CSV,
         parseCSVText,
         readFileAsText,
+        readAndParseDocument,
         formatFileSize,
         downloadSampleTemplate
     };
 })();
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = CSVReader;
+}

@@ -291,13 +291,12 @@ const App = (() => {
     }
 
     /**
-     * Handle Bank File Selection
+     * Handle Bank File Selection (Supports CSV, PDF, TXT, DOCX, DOC)
      */
     async function handleBankFileSelected(file) {
         try {
             showValidationAlert("", false);
-            const text = await CSVReader.readFileAsText(file);
-            const parsed = await CSVReader.parseCSVText(text);
+            const parsed = await CSVReader.readAndParseDocument(file, "Bank Statement");
 
             const validation = Validation.validateDataset(parsed.data, parsed.headers, "Bank Statement");
             if (!validation.valid) {
@@ -335,13 +334,12 @@ const App = (() => {
     }
 
     /**
-     * Handle Company File Selection
+     * Handle Company File Selection (Supports CSV, PDF, TXT, DOCX, DOC)
      */
     async function handleCompanyFileSelected(file) {
         try {
             showValidationAlert("", false);
-            const text = await CSVReader.readFileAsText(file);
-            const parsed = await CSVReader.parseCSVText(text);
+            const parsed = await CSVReader.readAndParseDocument(file, "Company Records");
 
             const validation = Validation.validateDataset(parsed.data, parsed.headers, "Company Records");
             if (!validation.valid) {
@@ -379,17 +377,40 @@ const App = (() => {
     }
 
     /**
-     * Render uploaded file badge/info box
+     * Render uploaded file badge/info box with dynamic format badge
      */
     function renderFileInfo(containerEl, data, type) {
         if (!containerEl) return;
         const sizeStr = CSVReader.formatFileSize(data.fileSize);
+        const nameLower = (data.fileName || "").toLowerCase();
+
+        let iconHtml = '<i class="fas fa-file-csv" style="color: #10b981;"></i>';
+        let badgeType = "CSV";
+        let badgeClass = "badge-matched";
+
+        if (nameLower.endsWith(".pdf")) {
+            iconHtml = '<i class="fas fa-file-pdf" style="color: #ef4444;"></i>';
+            badgeType = "PDF Statement";
+            badgeClass = "badge-unmatched-bank";
+        } else if (nameLower.endsWith(".docx") || nameLower.endsWith(".doc")) {
+            iconHtml = '<i class="fas fa-file-word" style="color: #3b82f6;"></i>';
+            badgeType = "Word Document";
+            badgeClass = "badge-matched";
+        } else if (nameLower.endsWith(".txt") || nameLower.endsWith(".tsv") || nameLower.endsWith(".text")) {
+            iconHtml = '<i class="fas fa-file-alt" style="color: #f59e0b;"></i>';
+            badgeType = "Text File";
+            badgeClass = "badge-date-mismatch";
+        }
+
         containerEl.innerHTML = `
             <div class="file-loaded-badge">
-                <div class="file-icon"><i class="fas fa-file-csv"></i></div>
+                <div class="file-icon">${iconHtml}</div>
                 <div class="file-details">
-                    <span class="file-name" title="${data.fileName}">${data.fileName}</span>
-                    <span class="file-meta">${sizeStr} • <strong>${data.validRows.length}</strong> valid records</span>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span class="file-name" title="${data.fileName}">${data.fileName}</span>
+                        <span class="status-badge ${badgeClass}" style="font-size: 9px; padding: 1px 6px;">${badgeType}</span>
+                    </div>
+                    <span class="file-meta">${sizeStr} • <strong>${data.validRows.length}</strong> records</span>
                 </div>
                 <button class="btn-remove-file" title="Remove file" onclick="App.clearFile('${type}')">
                     <i class="fas fa-times"></i>
@@ -862,6 +883,8 @@ const App = (() => {
         deleteSavedSession,
         showToast,
         handleBankFileSelected,
+        handleCompanyFileSelected,
+        removeFile: clearFile,
         getActiveReconciliation: () => activeReconciliation
     };
 })();
