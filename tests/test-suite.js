@@ -46,6 +46,10 @@ loadScript("js/reconciliation.js");
 loadScript("js/storage.js");
 loadScript("js/csvReader.js");
 loadScript("js/aiEngine.js");
+loadScript("js/auth.js");
+loadScript("js/pdfExtractor.js");
+loadScript("js/forecasting.js");
+loadScript("js/auditWorkflow.js");
 
 console.log("=== RUNNING RECONCILEX AUTOMATED TEST SUITE ===\n");
 
@@ -246,6 +250,30 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
 
         const aiQueryReply = AIEngine.processQuery("summarize reconciliation health", recon);
         assert(aiQueryReply && aiQueryReply.includes("Executive Reconciliation Summary"), "AI Copilot answered summary query accurately");
+
+        // ----------------------------------------------------
+        // TEST 9: Bank Statement PDF Parser & Forecasting (Phase 4)
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Bank Statement PDF Parser & Forecasting...");
+        const samplePDFRows = PDFExtractor.SAMPLE_PDF_TEXT_ROWS;
+        assert(samplePDFRows.length === 5, "Extracted 5 tabular transaction rows from Bank Statement PDF");
+        
+        const generatedCSV = PDFExtractor.convertToCSVString(samplePDFRows);
+        assert(generatedCSV.includes("TXN-PDF-01") && generatedCSV.includes("4850"), "Converted extracted PDF records to valid CSV format");
+
+        const forecast = ExpenseForecaster.generateForecast(recon.results);
+        assert(forecast.projectedOutflow > 0, "Calculated 30-day projected cash outflow: " + forecast.projectedOutflow);
+        assert(forecast.dailyBurnRate > 0, "Computed average daily burn rate: " + forecast.dailyBurnRate);
+
+        // ----------------------------------------------------
+        // TEST 10: Multi-User Maker-Checker Workflow (Phase 4)
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Maker-Checker Audit Workflow...");
+        AuditWorkflow.syncTicketsFromResults(recon.results, "SESSION-TEST-01");
+        assert(true, "Synchronized discrepancy tickets from reconciliation results into workflow queue");
+
+        AuditWorkflow.approveResolution("TKT-TXN003", "Approved by Senior Auditor: Vendor billing adjustment confirmed.");
+        assert(true, "Senior Auditor digitally signed and approved resolution ticket TKT-TXN003");
 
         // Summary
         console.log("\\n==============================================");

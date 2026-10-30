@@ -1,12 +1,31 @@
 transaction_id,date,amount,description,reference_number
-TXN101,2026-10-30,15400.50,"Client Contract, Phase 1",REF-901
-TXN102,2026-10-29,3200.00,"Office Rental, Floor 3",REF-902
-TXN103,2026-10-28,450.75,"Domain & DNS Renewal, Cloudflare",REF-903
-TXN104,2026-10-28,9100.00,"Hardware Purchase, GPU Cluster",REF-904
-TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905
-TXN105,2026-10-27,2400.00,"Travel Expenses (DUPLICATE CHARGE)",REF-905-DUP
-TXN106,2026-10-26,5000.00,"Security Audit, Penetration Test",REF-906
-TXN107,2026-10-25,1200.00,"Cafeteria & Pantry Supplies",REF-907
-TXN108,2026-10-24,7850.00,"PR & Media Agency Retainer",REF-908
-TXN109,2026-10-23,3100.00,"Health Insurance Group Policy",REF-909
-TXN110,2026-10-22,640.00,"Courier & Delivery, International",REF-910
+TXN111,2026-10-21,18500.75,"Enterprise Software, Annual License",REF-911
+TXN112,2026-10-21,2750.00,"Cloud Infrastructure, Azure Services",REF-912
+TXN113,2026-10-20,6400.50,"Office Equipment, Workstations",REF-913
+TXN114,2026-10-20,1250.00,"Internet & Network, Monthly Charges",REF-914
+TXN115,2026-10-19,9800.00,"Consulting Services, Project Alpha",REF-915
+TXN116,2026-10-19,3200.25,"Digital Marketing, Google Ads",REF-916
+TXN117,2026-10-18,750.00,"Office Supplies, Stationery",REF-917
+TXN118,2026-10-18,14200.00,"Server Infrastructure, Hardware Upgrade",REF-918
+TXN119,2026-10-17,4500.00,"Employee Training, Technical Workshop",REF-919
+TXN120,2026-10-17,2100.50,"Travel Expenses, Hotel Accommodation",REF-920
+TXN121,2026-10-16,5600.00,"Security Services, Firewall Renewal",REF-921
+TXN122,2026-10-16,1850.75,"Software Subscription, Project Management",REF-922
+TXN123,2026-10-15,8900.00,"Client Payment, Project Beta",REF-923
+TXN124,2026-10-15,3400.00,"Maintenance Charges, Office Equipment",REF-924
+TXN125,2026-10-14,7200.50,"Cloud Storage, Enterprise Backup",REF-925
+TXN126,2026-10-14,1950.00,"Courier Services, International Delivery",REF-926
+TXN127,2026-10-13,11200.00,"Hardware Purchase, Network Switches",REF-927
+TXN128,2026-10-13,2850.25,"Employee Expenses, Local Transport",REF-928
+TXN129,2026-10-12,6300.00,"Advertising Campaign, Social Media",REF-929
+TXN130,2026-10-12,4200.00,"Consulting Services, Data Migration",REF-930
+TXN131,2026-10-11,5600.00,"Security Audit, Compliance Review",REF-931
+TXN132,2026-10-11,5600.00,"Security Audit, Duplicate Payment",REF-931-DUP
+TXN133,2026-10-10,16500.75,"Client Contract, Phase 2",REF-933
+TXN134,2026-10-10,2450.00,"Office Utilities, Electricity Bill",REF-934
+TXN135,2026-10-09,9800.00,"Software Development, Milestone Payment",REF-935
+TXN136,2026-10-09,1350.50,"Domain Services, SSL Certificate",REF-936
+TXN137,2026-10-08,8400.00,"Hardware Maintenance, GPU Cluster",REF-937
+TXN138,2026-10-08,3150.00,"Travel Expenses, Client Meeting",REF-938
+TXN139,2026-10-07,6700.25,"Marketing Services, Brand Promotion",REF-939
+TXN140,2026-10-07,5200.00,"Cloud Infrastructure, AWS Renewal",REF-9999

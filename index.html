@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="css/reports.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/ai-auth.css">
+    <link rel="stylesheet" href="css/workflow.css">
 </head>
 <body>
 
@@ -61,6 +62,11 @@
                 <a href="#reports" class="nav-item" data-view="reports">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>Reports</span>
+                </a>
+
+                <a href="#workflow" class="nav-item" data-view="workflow">
+                    <i class="fas fa-tasks"></i>
+                    <span>Audit Workflow</span>
                 </a>
 
                 <div class="nav-section-title">System & Storage</div>
@@ -345,14 +351,20 @@
                         <!-- Bank Dropzone -->
                         <div class="dropzone-card" id="bankDropzone">
                             <input type="file" id="bankFileInput" class="hidden-file-input" accept=".csv">
+                            <input type="file" id="bankPdfInput" class="hidden-file-input" accept=".pdf" onchange="handleBankPdfSelected(event)">
                             <div class="dropzone-icon">
                                 <i class="fas fa-university"></i>
                             </div>
-                            <h3 class="dropzone-title">Bank Statement CSV</h3>
-                            <p class="dropzone-sub">Upload bank statement or gateway export. Requires transaction_id, date, amount, description.</p>
-                            <button type="button" class="dropzone-browse-btn">
-                                <i class="fas fa-folder-open"></i> Browse File
-                            </button>
+                            <h3 class="dropzone-title">Bank Statement (CSV / PDF)</h3>
+                            <p class="dropzone-sub">Upload bank statement CSV or PDF e-statement. Auto-extracts transaction rows.</p>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="dropzone-browse-btn">
+                                    <i class="fas fa-folder-open"></i> Browse CSV
+                                </button>
+                                <button type="button" class="btn-upload-pdf-toggle" onclick="event.stopPropagation(); document.getElementById('bankPdfInput').click()">
+                                    <i class="fas fa-file-pdf"></i> Upload PDF
+                                </button>
+                            </div>
                             <div id="bankFileInfo" class="file-loaded-container" style="display: none;"></div>
                         </div>
 
@@ -584,6 +596,9 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- PREDICTIVE EXPENSE FORECAST WIDGET (PHASE 4) -->
+                        <div id="forecastWidgetContainer"></div>
                     </div>
                 </section>
 
@@ -686,6 +701,62 @@
                         <div class="pdf-preview-info">
                             <h3><i class="fas fa-shield-alt text-cyan"></i> Hackathon / Audit Presentation Ready</h3>
                             <p>Our PDF generator runs 100% locally in your browser using jsPDF & AutoTable with vector branding, page counts, and confidential audit headers.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     5B. AUDIT WORKFLOW VIEW (PHASE 4 MAKER-CHECKER)
+                     ========================================== -->
+                <section class="view-section" id="view-workflow">
+                    <div class="dashboard-hero">
+                        <div class="dashboard-title">
+                            <h1>Enterprise Maker-Checker Audit Workflow</h1>
+                            <p>Discrepancy resolution tickets. Financial Analysts investigate and classify; Senior Auditors verify and digitally sign off.</p>
+                        </div>
+                    </div>
+
+                    <!-- WORKFLOW KPI BAR -->
+                    <div class="workflow-kpi-bar">
+                        <div class="workflow-status-card pending">
+                            <div>
+                                <div class="wf-stat-label">Pending Resolution / Sign-Off</div>
+                                <div class="wf-stat-value font-mono text-yellow" id="wfCountPending">0 Pending</div>
+                            </div>
+                            <i class="fas fa-hourglass-half text-yellow" style="font-size: 24px;"></i>
+                        </div>
+                        <div class="workflow-status-card approved">
+                            <div>
+                                <div class="wf-stat-label">Approved & Ledger Stamped</div>
+                                <div class="wf-stat-value font-mono text-green" id="wfCountResolved">0 Approved</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+
+                    <!-- TICKETS TABLE -->
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="fintech-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ticket ID</th>
+                                        <th>Txn ID</th>
+                                        <th>Variance Amount</th>
+                                        <th>Approval State</th>
+                                        <th>Maker & Diagnosis</th>
+                                        <th>Auditor Sign-Off</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workflowTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">
+                                            No discrepancy tickets in workflow queue. Run reconciliation to generate audit items.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
@@ -968,6 +1039,21 @@
     </div>
 
     <!-- ==========================================
+         AUDIT RESOLUTION SIGNOFF MODAL (PHASE 4)
+         ========================================== -->
+    <div class="modal-overlay" id="auditSignoffModal">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-stamp text-cyan"></i> Senior Auditor Compliance Sign-Off</h3>
+                <button class="btn-close-modal" onclick="AuditWorkflow.closeReviewModal()" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="auditSignoffContent"></div>
+        </div>
+    </div>
+
+    <!-- ==========================================
          TOAST NOTIFICATION CONTAINER
          ========================================== -->
     <div class="toast-container" id="toastContainer"></div>
@@ -985,6 +1071,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- Mozilla PDF.js for Bank Statement PDF Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <!-- Application Modules in Dependency Order -->
     <script src="js/settings.js"></script>
     <script src="js/validation.js"></script>
@@ -1000,6 +1089,9 @@
     <script src="js/aiEngine.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/diagnostics.js"></script>
+    <script src="js/pdfExtractor.js"></script>
+    <script src="js/forecasting.js"></script>
+    <script src="js/auditWorkflow.js"></script>
     <script src="js/app.js"></script>
 
     <!-- Inline Auth & Copilot Glue Helpers -->
@@ -1094,6 +1186,21 @@
                 body.appendChild(botMsg);
                 body.scrollTop = body.scrollHeight;
             }, 300);
+        }
+
+        async function handleBankPdfSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                App.showToast(`Extracting bank statement PDF "${file.name}"...`, "info");
+                const rows = await PDFExtractor.extractTransactionsFromPDF(file);
+                const csvString = PDFExtractor.convertToCSVString(rows);
+                const pseudoFile = new File([csvString], file.name.replace(/\.pdf$/i, ".csv"), { type: "text/csv" });
+                await App.handleBankFileSelected(pseudoFile);
+                App.showToast(`Successfully extracted ${rows.length} transactions from PDF!`, "success");
+            } catch (err) {
+                App.showToast(`PDF Extraction error: ${err.message}`, "danger");
+            }
         }
     </script>
 

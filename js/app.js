@@ -195,6 +195,7 @@ const App = (() => {
             transactions: "Transactions Ledger",
             analytics: "Financial Analytics & Insights",
             reports: "Audit Reports & Exports",
+            workflow: "Enterprise Maker-Checker Audit Workflow",
             history: "Reconciliation Session History",
             settings: "System Preferences & Tolerances"
         };
@@ -207,6 +208,8 @@ const App = (() => {
             renderHistoryTable();
         } else if (viewName === "reports") {
             updateReportSectionCounters();
+        } else if (viewName === "workflow") {
+            if (typeof AuditWorkflow !== "undefined") AuditWorkflow.renderWorkflowTable();
         }
     }
 
@@ -511,6 +514,8 @@ const App = (() => {
             Dashboard.render(reconciliation.statistics, reconciliation.results);
             TransactionsUI.setResults(reconciliation.results);
             AnalyticsUI.render(reconciliation.statistics, reconciliation.results);
+            if (typeof AuditWorkflow !== "undefined") AuditWorkflow.syncTicketsFromResults(reconciliation.results);
+            if (typeof ExpenseForecaster !== "undefined") ExpenseForecaster.renderForecastingUI(reconciliation.results);
 
             // Persist to storage
             StorageManager.saveSession(activeReconciliation);
@@ -856,6 +861,7 @@ const App = (() => {
         openSavedSession,
         deleteSavedSession,
         showToast,
+        handleBankFileSelected,
         getActiveReconciliation: () => activeReconciliation
     };
 })();

@@ -225,7 +225,9 @@ const AuthManager = (() => {
         if (modal) modal.classList.remove("active");
     }
 
-    document.addEventListener("DOMContentLoaded", init);
+    if (typeof document !== "undefined") {
+        document.addEventListener("DOMContentLoaded", init);
+    }
 
     return {
         init,
