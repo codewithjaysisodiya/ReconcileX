@@ -85,36 +85,48 @@ const ReconciliationEngine = (() => {
         const amountTolerance = Math.max(0, parseFloat(options.amountTolerance) || 0);
         const dateToleranceDays = Math.max(0, parseInt(options.dateToleranceDays, 10) || 0);
 
-        // 1. Detect duplicates in both files
+        // 1. Detect duplicates in both files (case-insensitive & trimmed)
         const bankDupAnalysis = DuplicateDetector.detectDuplicates(bankRecords);
         const companyDupAnalysis = DuplicateDetector.detectDuplicates(companyRecords);
 
+        // Normalized key helper for resilient financial matching
+        function normKey(val) {
+            return String(val || "").trim().toUpperCase();
+        }
+
         // 2. Build multi-maps to handle possible multiple records per ID safely
         const bankMap = new Map();
+        const originalIdMap = new Map();
+
         bankRecords.forEach(record => {
-            const id = record.transaction_id;
-            if (!bankMap.has(id)) bankMap.set(id, []);
-            bankMap.get(id).push(record);
+            const rawId = record.transaction_id !== undefined && record.transaction_id !== null ? String(record.transaction_id).trim() : "";
+            const key = normKey(rawId);
+            if (!bankMap.has(key)) bankMap.set(key, []);
+            bankMap.get(key).push(record);
+            if (!originalIdMap.has(key)) originalIdMap.set(key, rawId);
         });
 
         const companyMap = new Map();
         companyRecords.forEach(record => {
-            const id = record.transaction_id;
-            if (!companyMap.has(id)) companyMap.set(id, []);
-            companyMap.get(id).push(record);
+            const rawId = record.transaction_id !== undefined && record.transaction_id !== null ? String(record.transaction_id).trim() : "";
+            const key = normKey(rawId);
+            if (!companyMap.has(key)) companyMap.set(key, []);
+            companyMap.get(key).push(record);
+            if (!originalIdMap.has(key)) originalIdMap.set(key, rawId);
         });
 
-        // 3. Union of all unique transaction IDs
-        const allIds = new Set([...bankMap.keys(), ...companyMap.keys()]);
+        // 3. Union of all unique normalized transaction IDs
+        const allKeys = new Set([...bankMap.keys(), ...companyMap.keys()]);
         const results = [];
 
         // 4. Reconcile records ID by ID
-        allIds.forEach(id => {
-            const bankList = bankMap.get(id) || [];
-            const companyList = companyMap.get(id) || [];
+        allKeys.forEach(key => {
+            const bankList = bankMap.get(key) || [];
+            const companyList = companyMap.get(key) || [];
+            const displayId = (bankList[0] && bankList[0].transaction_id) || (companyList[0] && companyList[0].transaction_id) || originalIdMap.get(key) || key;
 
-            const isBankDup = bankDupAnalysis.duplicateIds.has(id);
-            const isCompanyDup = companyDupAnalysis.duplicateIds.has(id);
+            const isBankDup = bankDupAnalysis.duplicateIds.has(key);
+            const isCompanyDup = companyDupAnalysis.duplicateIds.has(key);
 
             // Determine maximum instances for this ID to ensure no record is lost
             const maxOccurrences = Math.max(bankList.length, companyList.length);
@@ -207,8 +219,8 @@ const ReconciliationEngine = (() => {
                 const statusMeta = STATUS_MAP[status] || STATUS_MAP.matched;
 
                 results.push({
-                    id: `${id}${maxOccurrences > 1 ? `_#${i + 1}` : ""}`,
-                    transactionId: id,
+                    id: `${displayId}${maxOccurrences > 1 ? `_#${i + 1}` : ""}`,
+                    transactionId: displayId,
                     occurrenceIndex: i + 1,
                     totalOccurrences: maxOccurrences,
                     bankAmount,

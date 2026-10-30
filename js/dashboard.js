@@ -92,7 +92,7 @@ const Dashboard = (() => {
         animateCounter(dom.totalCount, statistics.totalProcessedRows || 0);
         animateCounter(dom.matchedCount, statistics.matchedCount || 0);
         animateCounter(dom.unmatchedCount, statistics.totalUnmatchedCount || 0);
-        animateCounter(dom.mismatchCount, (statistics.amountMismatchCount || 0) + (statistics.dateMismatchCount || 0));
+        animateCounter(dom.mismatchCount, (statistics.amountMismatchCount || 0) + (statistics.dateMismatchCount || 0) + (statistics.multipleIssuesCount || 0));
         animateCounter(dom.duplicateCount, statistics.duplicateCount || 0);
 
         if (dom.matchPercentage) {

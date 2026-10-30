@@ -23,11 +23,12 @@ const DuplicateDetector = (() => {
         const duplicateTransactions = [];
 
         transactions.forEach((txn, index) => {
-            const id = txn.transaction_id;
+            const rawId = txn.transaction_id !== undefined && txn.transaction_id !== null ? String(txn.transaction_id).trim() : "";
+            const id = rawId.toUpperCase();
             if (!idOccurrences.has(id)) {
                 idOccurrences.set(id, []);
             }
-            idOccurrences.get(id).push({ ...txn, _originalIndex: index });
+            idOccurrences.get(id).push({ ...txn, _rawId: rawId, _originalIndex: index });
         });
 
         idOccurrences.forEach((list, id) => {
@@ -54,8 +55,9 @@ const DuplicateDetector = (() => {
      * @returns {{ isDuplicate: boolean, source: 'none' | 'bank' | 'company' | 'both' }}
      */
     function checkDuplicateStatus(txnId, bankDuplicateIds, companyDuplicateIds) {
-        const inBank = bankDuplicateIds.has(txnId);
-        const inCompany = companyDuplicateIds.has(txnId);
+        const norm = String(txnId || "").trim().toUpperCase();
+        const inBank = bankDuplicateIds.has(norm) || bankDuplicateIds.has(txnId);
+        const inCompany = companyDuplicateIds.has(norm) || companyDuplicateIds.has(txnId);
 
         if (inBank && inCompany) return { isDuplicate: true, source: "both" };
         if (inBank) return { isDuplicate: true, source: "bank" };

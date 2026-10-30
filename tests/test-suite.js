@@ -11,6 +11,7 @@ const vm = require("vm");
 const sandbox = {
     console: console,
     process: process,
+    __dirname: __dirname,
     Set: Set,
     Map: Map,
     Date: Date,
@@ -38,15 +39,24 @@ const sandbox = {
             }, 0);
         }
     },
+    Buffer: Buffer,
+    require: require,
     File: class {
         constructor(parts, name, opts = {}) {
             this.name = name;
             this.type = opts.type || "";
-            this._text = Array.isArray(parts) ? parts.join("") : String(parts);
-            this.size = Buffer.byteLength(this._text);
+            if (parts && parts.length > 0 && Buffer.isBuffer(parts[0])) {
+                this._buffer = parts[0];
+                this.size = parts[0].length;
+                this._text = "";
+            } else {
+                this._text = Array.isArray(parts) ? parts.join("") : String(parts);
+                this._buffer = Buffer.from(this._text);
+                this.size = this._buffer.length;
+            }
         }
         async arrayBuffer() {
-            return Buffer.from(this._text).buffer;
+            return this._buffer.buffer.slice(this._buffer.byteOffset, this._buffer.byteOffset + this._buffer.byteLength);
         }
     },
     Blob: class {
@@ -479,6 +489,45 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
         // 2. Logout and verify unauthenticated guest user state
         AuthManager.logout();
         assert(AuthManager.getCurrentUser() === null, "User is in unauthenticated guest state after logout");
+
+        // ----------------------------------------------------
+        // TEST 15: Multi-Page Statement Extraction & Complete Reconciliation (Aarav Dataset)
+        // ----------------------------------------------------
+        console.log("\\n--> Testing Multi-Page Statement Extraction & Complete Reconciliation (Aarav Dataset)...");
+
+        const fs = require("fs");
+        const path = require("path");
+        const aaravPdfPath = path.join(__dirname, "..", "sample-data", "aarav-bank-statement.pdf");
+        const aaravPdfBuf = fs.readFileSync(aaravPdfPath);
+        const aaravPdfFile = new File([aaravPdfBuf], "aarav_bank_statement.pdf", { type: "application/pdf" });
+
+        const extractedAaravRows = await PDFExtractor.extractTransactionsFromPDF(aaravPdfFile, "Bank Statement");
+        assert(extractedAaravRows.length === 31, "Successfully extracted all 31 transactions from multi-page statement (22 on Page 1, 9 on Page 2)");
+
+        const page1Count = extractedAaravRows.filter(r => r.transaction_id.startsWith("AARAV-TXN-000") || (r.transaction_id.startsWith("AARAV-TXN-001") || r.transaction_id.startsWith("AARAV-TXN-002")) && parseInt(r.transaction_id.split("-").pop(), 10) <= 22).length;
+        assert(page1Count === 22, "Extracted exactly 22 transactions for Page 1");
+
+        const hasExtraBankFee = extractedAaravRows.some(r => r.transaction_id === "AARAV-BANK-EXTRA-01" && r.amount === 1299.00);
+        assert(hasExtraBankFee, "Accurately extracted AARAV-BANK-EXTRA-01 fee (₹1,299.00)");
+
+        // Validate dataset through Validation Engine
+        const valAarav = Validation.validateDataset(extractedAaravRows, ["transaction_id", "date", "amount", "description", "reference_number"], "Bank Statement");
+        assert(valAarav.valid && valAarav.validRows.length === 31, "All 31 extracted PDF records passed schema validation");
+
+        // Load company records
+        const compAaravCSV = fs.readFileSync(path.join(__dirname, "..", "sample-data", "aarav-company-records.csv"), "utf-8");
+        const parsedCompAarav = await CSVReader.parseCSVText(compAaravCSV);
+        const valCompAarav = Validation.validateDataset(parsedCompAarav.data, parsedCompAarav.headers, "Company Records");
+        assert(valCompAarav.valid && valCompAarav.validRows.length === 31, "Company records parsed and validated (31 rows)");
+
+        // Run full reconciliation
+        const reconAarav = ReconciliationEngine.reconcile(valAarav.validRows, valCompAarav.validRows, { amountTolerance: 0, dateToleranceDays: 0 });
+        assert(reconAarav.statistics.totalProcessedRows === 32, "Total combined processed reconciliation entries: 32");
+        assert(reconAarav.statistics.matchedCount === 29, "Matched exactly 29 100% reconciled entries");
+        assert(reconAarav.statistics.amountMismatchCount === 1, "Detected AARAV-TXN-0008 amount mismatch (Bank ₹39,744.50 vs Ledger ₹39,700.00)");
+        assert(reconAarav.statistics.unmatchedBankCount === 1, "Identified AARAV-BANK-EXTRA-01 as Unmatched (Bank Only)");
+        assert(reconAarav.statistics.unmatchedCompanyCount === 1, "Identified AARAV-COMP-EXTRA-01 as Unmatched (Company Only)");
+        assert(reconAarav.statistics.totalDiscrepancyAmount > 0, "Total Discrepancy Amount calculated accurately: ₹" + reconAarav.statistics.totalDiscrepancyAmount);
 
         // Summary
         console.log("\\n==============================================");

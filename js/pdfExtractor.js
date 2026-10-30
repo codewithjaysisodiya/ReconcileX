@@ -41,7 +41,7 @@ const PDFExtractor = (() => {
         const isCompany = recordType && recordType.toLowerCase().includes("company");
         const defaultFallback = isCompany ? SAMPLE_COMPANY_PDF_ROWS : SAMPLE_PDF_TEXT_ROWS;
 
-        // Extract with PDF.js if available in browser
+        // 1. Extract with Mozilla PDF.js if available in browser
         if (isPDFJsAvailable()) {
             try {
                 const arrayBuffer = await file.arrayBuffer();
@@ -51,8 +51,28 @@ const PDFExtractor = (() => {
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
-                    const pageStrings = textContent.items.map(item => item.str);
-                    fullText += pageStrings.join(" ") + "\n";
+                    const items = textContent.items || [];
+                    if (!items.length) continue;
+
+                    // Group items by vertical Y-coordinate with 3.5px line tolerance to preserve tabular rows
+                    const lineBuckets = new Map();
+                    items.forEach(item => {
+                        if (!item.str || !item.str.trim()) return;
+                        // PDF.js transform: [scaleX, skewY, skewX, scaleY, tx, ty]
+                        const y = item.transform ? Math.round(item.transform[5] / 3.5) * 3.5 : 0;
+                        if (!lineBuckets.has(y)) lineBuckets.set(y, []);
+                        lineBuckets.get(y).push(item);
+                    });
+
+                    // Sort descending by Y (top of page down to bottom)
+                    const sortedYs = Array.from(lineBuckets.keys()).sort((a, b) => b - a);
+                    for (const y of sortedYs) {
+                        // Sort items ascending by X (left to right across the row)
+                        const lineItems = lineBuckets.get(y).sort((a, b) => (a.transform ? a.transform[4] : 0) - (b.transform ? b.transform[4] : 0));
+                        const lineStr = lineItems.map(it => it.str.trim()).filter(Boolean).join(" ");
+                        if (lineStr) fullText += lineStr + "\n";
+                    }
+                    fullText += "\n";
                 }
 
                 const parsedRows = parseStatementText(fullText, recordType);
@@ -60,11 +80,129 @@ const PDFExtractor = (() => {
                     return parsedRows;
                 }
             } catch (err) {
-                console.warn("PDF.js direct extraction issue, falling back to statement parser:", err);
+                console.warn("PDF.js direct extraction issue, falling back to direct stream parser:", err);
             }
         }
 
+        // 2. Direct binary / PDF stream parsing fallback (works offline, in Node.js, and if PDF.js is unavailable)
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            const extractedText = extractTextFromPDFBytes(bytes);
+            if (extractedText && extractedText.trim().length > 20) {
+                const parsedRows = parseStatementText(extractedText, recordType);
+                if (parsedRows.length > 0) {
+                    return parsedRows;
+                }
+            }
+        } catch (binErr) {
+            console.warn("Direct PDF byte stream parser encountered issue:", binErr);
+        }
+
         return defaultFallback;
+    }
+
+    /**
+     * Decode ASCII85 encoded strings into byte buffer
+     */
+    function ascii85Decode(aStr) {
+        const clean = aStr.replace(/<~|~>|\s/g, "");
+        const bytes = [];
+        for (let i = 0; i < clean.length;) {
+            if (clean[i] === "z") {
+                bytes.push(0, 0, 0, 0);
+                i++;
+                continue;
+            }
+            const chunk = clean.slice(i, i + 5);
+            const pad = 5 - chunk.length;
+            const padded = chunk + "u".repeat(pad);
+            let val = 0;
+            for (let j = 0; j < 5; j++) {
+                val = val * 85 + (padded.charCodeAt(j) - 33);
+            }
+            const b = [
+                (val >>> 24) & 0xff,
+                (val >>> 16) & 0xff,
+                (val >>> 8) & 0xff,
+                val & 0xff
+            ];
+            bytes.push(...b.slice(0, 4 - pad));
+            i += chunk.length;
+        }
+        return new Uint8Array(bytes);
+    }
+
+    /**
+     * Decompress and extract text from raw PDF stream objects
+     */
+    function extractTextFromPDFBytes(bytes) {
+        let pos = 0;
+        let fullText = "";
+        const buf = typeof Buffer !== "undefined" ? Buffer.from(bytes) : null;
+        if (!buf) return "";
+
+        const zlib = typeof require !== "undefined" ? require("zlib") : null;
+
+        while (pos < buf.length - 10) {
+            const sIdx = buf.indexOf(Buffer.from("stream"), pos);
+            if (sIdx === -1) break;
+            let start = sIdx + 6;
+            while (buf[start] === 10 || buf[start] === 13) start++;
+            const eIdx = buf.indexOf(Buffer.from("endstream"), start);
+            if (eIdx === -1) break;
+            const chunk = buf.slice(start, eIdx).toString("latin1");
+
+            let uncompressed = null;
+            if (zlib) {
+                try {
+                    const rawFlate = ascii85Decode(chunk);
+                    uncompressed = zlib.inflateSync(Buffer.from(rawFlate)).toString("utf8");
+                } catch (e1) {
+                    try {
+                        uncompressed = zlib.inflateSync(buf.slice(start, eIdx)).toString("utf8");
+                    } catch (e2) {
+                        try {
+                            uncompressed = zlib.inflateRawSync(buf.slice(start, eIdx)).toString("utf8");
+                        } catch (e3) {}
+                    }
+                }
+            }
+
+            if (uncompressed) {
+                // Extract text operators: BT [1 0 0 1 x y Tm] (text) Tj
+                const itemRegex = /BT\s+(?:1\s+0\s+0\s+1\s+([\d.]+)\s+([\d.]+)\s+Tm\s+)?(?:\/[A-Za-z0-9]+\s+[\d.]+\s+Tf\s+[\d.]+\s+TL\s+)?\(([\s\S]*?)\)\s+Tj/g;
+                let im;
+                const pageItems = [];
+                while ((im = itemRegex.exec(uncompressed)) !== null) {
+                    pageItems.push({
+                        x: parseFloat(im[1] || 0),
+                        y: parseFloat(im[2] || 0),
+                        str: im[3].replace(/\\([()])/g, "$1")
+                    });
+                }
+
+                if (pageItems.length > 0) {
+                    const lineBuckets = new Map();
+                    pageItems.forEach(item => {
+                        const yKey = Math.round(item.y / 3.5) * 3.5;
+                        if (!lineBuckets.has(yKey)) lineBuckets.set(yKey, []);
+                        lineBuckets.get(yKey).push(item);
+                    });
+
+                    const sortedYs = Array.from(lineBuckets.keys()).sort((a, b) => b - a);
+                    for (const y of sortedYs) {
+                        const lineItems = lineBuckets.get(y).sort((a, b) => a.x - b.x);
+                        const lineStr = lineItems.map(it => it.str.trim()).filter(Boolean).join(" ");
+                        if (lineStr) fullText += lineStr + "\n";
+                    }
+                    fullText += "\n";
+                }
+            }
+            pos = eIdx + 9;
+        }
+
+        return fullText;
     }
 
     /**
@@ -203,73 +341,171 @@ const PDFExtractor = (() => {
     }
 
     /**
-     * Regex heuristic financial statement parser
-     * Matches transaction lines across CSV, Text, PDF, and DOCX formats.
+     * Normalize date string to standard ISO YYYY-MM-DD format
+     */
+    function normalizeDateStr(dStr) {
+        if (!dStr) return "";
+        const trimmed = String(dStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+        const dmy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (dmy) {
+            return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+        }
+        const d = new Date(trimmed);
+        if (!isNaN(d.getTime())) {
+            const yr = d.getFullYear();
+            const mo = String(d.getMonth() + 1).padStart(2, "0");
+            const da = String(d.getDate()).padStart(2, "0");
+            return `${yr}-${mo}-${da}`;
+        }
+        return trimmed;
+    }
+
+    /**
+     * Clean and parse currency amount string into a normalized floating-point number
+     */
+    function cleanAmountStr(aStr) {
+        if (aStr === null || aStr === undefined || aStr === "") return 0;
+        const num = parseFloat(String(aStr).replace(/[₹$,£€¥\s]/g, "").replace(/,/g, ""));
+        return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+    }
+
+    /**
+     * Multi-Format Financial Statement Parser Engine
+     * Matches tabular and unstructured transaction lines across PDF, CSV, Text, and DOCX formats.
+     * Supports standard bank statements, corporate ledgers, and custom academic/hackathon formats.
      */
     function parseStatementText(rawText, recordType = "Bank Statement") {
         if (!rawText) return [];
 
         const isCompany = recordType && recordType.toLowerCase().includes("company");
-        const idPrefix = isCompany ? "COMP" : "TXN";
+        const idPrefix = isCompany ? "CMP" : "TXN";
         const rows = [];
         const lines = rawText.split(/\r?\n/);
         let idCounter = 1;
-
-        // Regex for Date: YYYY-MM-DD or DD-MM-YYYY or DD/MM/YYYY
-        const dateRegex = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})\b/;
-        // Regex for Currency Amount: numbers with commas/decimals (e.g. 4850.00, 12,500.50, 350.00)
-        const amountRegex = /\b(\d{1,3}(?:,\d{3})*\.\d{2}|\d+\.\d{2}|\d{1,3}(?:,\d{3})+)\b/;
-        // Regex for Transaction/Reference ID
-        const idRegex = /\b([A-Z0-9_\-]{3,18})\b/i;
 
         for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed || trimmed.length < 8) continue;
 
+            // Skip document metadata and column headers
+            if (/^(Transaction\s*ID|Date\s+Particulars|Statement\s*period|Document\s*type|Fictional\s*sample|Account\s*Number|Balance\s*Brought)/i.test(trimmed)) {
+                continue;
+            }
+
+            // Pattern 1: [ID] [Amount] [Date] [Description] (Aarav Technologies format)
+            // e.g. AARAV-TXN-0001 7991.89 2026-10-11 Office rent
+            const p1 = /^([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+)$/i;
+            let m = trimmed.match(p1);
+            if (m) {
+                rows.push({
+                    transaction_id: m[1].trim(),
+                    amount: cleanAmountStr(m[2]),
+                    date: normalizeDateStr(m[3]),
+                    description: m[4].trim(),
+                    reference_number: m[1].trim()
+                });
+                continue;
+            }
+
+            // Pattern 2: [Date] [Description] [Amount] [ID]
+            const p2 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+(.+?)\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+([A-Za-z0-9_\-#]{2,40})$/i;
+            m = trimmed.match(p2);
+            if (m) {
+                rows.push({
+                    transaction_id: m[4].trim(),
+                    amount: cleanAmountStr(m[3]),
+                    date: normalizeDateStr(m[1]),
+                    description: m[2].trim(),
+                    reference_number: m[4].trim()
+                });
+                continue;
+            }
+
+            // Pattern 3: [Date] [ID] [Amount] [Description]
+            const p3 = /^(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([A-Za-z0-9_\-#]{2,40})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(.+)$/i;
+            m = trimmed.match(p3);
+            if (m) {
+                rows.push({
+                    transaction_id: m[2].trim(),
+                    amount: cleanAmountStr(m[3]),
+                    date: normalizeDateStr(m[1]),
+                    description: m[4].trim(),
+                    reference_number: m[2].trim()
+                });
+                continue;
+            }
+
+            // Pattern 4: [ID] [Date] [Amount] [Description]
+            const p4 = /^([A-Za-z0-9_\-#]{2,40})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(.+)$/i;
+            m = trimmed.match(p4);
+            if (m) {
+                rows.push({
+                    transaction_id: m[1].trim(),
+                    amount: cleanAmountStr(m[3]),
+                    date: normalizeDateStr(m[2]),
+                    description: m[4].trim(),
+                    reference_number: m[1].trim()
+                });
+                continue;
+            }
+
+            // Pattern 5: Flexible token matching for any line containing a date and amount
+            const dateRegex = /\b(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\b/;
+            const amountRegex = /\b([₹$€£]?\s*(?:\d{1,3}(?:,\d{3})*|\d+)\.\d{2})\b/;
             const dateMatch = trimmed.match(dateRegex);
             const amountMatch = trimmed.match(amountRegex);
 
             if (dateMatch && amountMatch) {
                 const dateStr = dateMatch[0];
-                const amountNum = parseFloat(amountMatch[0].replace(/,/g, ""));
+                const amountNum = cleanAmountStr(amountMatch[0]);
 
-                // Detect existing transaction ID if present
-                let txnId = "";
-                const tokens = trimmed.split(/[\s,]+/);
+                let remainder = trimmed.replace(dateMatch[0], " ").replace(amountMatch[0], " ").trim();
+                const tokens = remainder.split(/\s+/).filter(Boolean);
+
+                let detectedId = "";
+                const descTokens = [];
+
                 for (const t of tokens) {
-                    if (/^(TXN|INV|REF|DOC|TRX|ORD)[\w\-]+/i.test(t)) {
-                        txnId = t.toUpperCase();
-                        break;
+                    if (!detectedId && /^[A-Za-z0-9_\-]{3,35}$/.test(t) && !/^(INR|USD|EUR|GBP|CREDIT|DEBIT|DR|CR|PAID|SENT)$/i.test(t)) {
+                        if (/[\d\-]/.test(t) || /^(TXN|INV|REF|DOC|TRX|ORD)/i.test(t)) {
+                            detectedId = t;
+                            continue;
+                        }
                     }
-                }
-                if (!txnId) {
-                    txnId = `${idPrefix}-${String(idCounter++).padStart(3, "0")}`;
+                    descTokens.push(t);
                 }
 
-                // Description is remaining text after stripping date and amount
-                let desc = trimmed.replace(dateStr, "").replace(amountMatch[0], "").replace(txnId, "").trim();
-                desc = desc.replace(/[^\w\s\-,.]/g, " ").replace(/\s+/g, " ").trim();
+                if (!detectedId) {
+                    detectedId = `${idPrefix}-${String(idCounter++).padStart(3, "0")}`;
+                }
+
+                let desc = descTokens.join(" ").replace(/[^\w\s\-,.]/g, " ").replace(/\s+/g, " ").trim();
                 if (!desc || desc.length < 2) {
                     desc = isCompany ? "Internal Ledger Entry" : "Bank Statement Transaction";
                 }
 
-                // Normalize date to YYYY-MM-DD
-                let normalizedDate = dateStr;
-                if (dateStr.includes("/")) {
-                    const parts = dateStr.split("/");
-                    if (parts.length === 3) {
-                        normalizedDate = parts[2].length === 4 
-                            ? `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}` 
-                            : dateStr;
-                    }
-                }
-
                 rows.push({
-                    transaction_id: txnId,
-                    date: normalizedDate,
+                    transaction_id: detectedId,
                     amount: amountNum,
+                    date: normalizeDateStr(dateStr),
                     description: desc,
-                    reference_number: `REF-${Date.now().toString().slice(-4)}`
+                    reference_number: detectedId
+                });
+            }
+        }
+
+        // Stream fallback: If line-by-line matched fewer than 2 rows but the rawText is large (unseparated stream)
+        if (rows.length < 2 && rawText.length > 80) {
+            const streamPattern = /(?:^|\s+)([A-Za-z0-9_\-]{3,35})\s+([₹$€£]?\s*[\d,]+\.\d{2})\s+(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s+([\s\S]*?)(?=(?:\s+[A-Za-z0-9_\-]{3,35}\s+[₹$€£]?\s*[\d,]+\.\d{2}\s+(?:\d{4}[-\/]\d{2}[-\/]\d{2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}))|$)/gi;
+            let sm;
+            while ((sm = streamPattern.exec(rawText)) !== null) {
+                rows.push({
+                    transaction_id: sm[1].trim(),
+                    amount: cleanAmountStr(sm[2]),
+                    date: normalizeDateStr(sm[3]),
+                    description: sm[4].trim().replace(/\s+/g, " "),
+                    reference_number: sm[1].trim()
                 });
             }
         }
