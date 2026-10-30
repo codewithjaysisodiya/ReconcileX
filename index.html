@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/analytics.css">
     <link rel="stylesheet" href="css/reports.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/ai-auth.css">
 </head>
 <body>
 
@@ -76,9 +77,12 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="system-status-indicator">
+                <div class="system-status-indicator" style="margin-bottom: 8px;">
                     <div class="status-dot-pulse"></div>
                     <span>System Online • v2.4</span>
+                </div>
+                <div id="dbStatusIndicator" class="status-badge badge-matched" style="font-size: 10px; width: 100%; justify-content: center;">
+                    <i class="fas fa-database"></i> MySQL Ready
                 </div>
             </div>
         </aside>
@@ -102,6 +106,11 @@
                 <div class="topbar-right">
                     <div class="currency-badge" id="headerCurrencyBadge">INR (₹)</div>
 
+                    <button class="btn-quick-action" id="navDiagnosticsBtn" title="Run Automated System Diagnostics & Health Check" onclick="SystemDiagnostics.runDiagnostics()">
+                        <i class="fas fa-stethoscope text-green"></i>
+                        <span>Diagnostics</span>
+                    </button>
+
                     <button class="btn-quick-action" id="navQuickDemoBtn" title="Load sample demo transactions with one click">
                         <i class="fas fa-magic text-cyan"></i>
                         <span>Load Demo</span>
@@ -113,11 +122,14 @@
                     </button>
 
                     <div class="user-profile-widget">
-                        <div class="avatar-initials">RX</div>
+                        <div class="avatar-initials" id="headerUserAvatar">AD</div>
                         <div class="user-details">
-                            <span class="user-name">Finance Team</span>
-                            <span class="user-role">Hackathon Edition</span>
+                            <span class="user-name" id="headerUserName">Senior Analyst</span>
+                            <span class="user-role" id="headerUserRole">FINANCIAL ANALYST</span>
                         </div>
+                        <button class="btn-action-view" id="headerAuthBtn" style="padding: 4px 8px; font-size: 11px; margin-left: 6px;">
+                            <i class="fas fa-sign-in-alt"></i> <span>Sign In</span>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -817,6 +829,145 @@
     </div>
 
     <!-- ==========================================
+         SYSTEM DIAGNOSTICS MODAL (PHASE 1)
+         ========================================== -->
+    <div class="modal-overlay" id="diagnosticsModal">
+        <div class="modal-card" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-stethoscope text-green"></i> System Health & Diagnostics Engine</h3>
+                <button class="btn-close-modal" onclick="SystemDiagnostics.closeModal()" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="diag-progress-wrap">
+                    <div class="diag-progress-bar" id="diagProgressBar"></div>
+                </div>
+                <div class="diag-list" id="diagnosticsTestList"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                    <span id="diagSummaryBadge" class="status-badge badge-matched">Ready</span>
+                    <button class="btn-primary" onclick="SystemDiagnostics.runDiagnostics()">
+                        <i class="fas fa-sync-alt"></i> Re-Run Diagnostics
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         USER AUTHENTICATION MODAL (PHASE 2)
+         ========================================== -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-shield-alt text-cyan"></i> Authentication & Access Control</h3>
+                <button class="btn-close-modal" onclick="AuthManager.closeAuthModal()" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tab-bar">
+                    <button class="auth-tab-btn active" id="authTabSignIn" onclick="switchAuthTab('signin')">Sign In</button>
+                    <button class="auth-tab-btn" id="authTabRegister" onclick="switchAuthTab('register')">Register Analyst</button>
+                </div>
+
+                <!-- Sign In Form -->
+                <form id="signInForm" class="auth-form" onsubmit="handleSignIn(event)">
+                    <div class="form-field">
+                        <label>Username or Work Email</label>
+                        <input type="text" id="authLoginUser" class="search-input" placeholder="e.g. analyst" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Password</label>
+                        <input type="password" id="authLoginPass" class="search-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-sign-in-alt"></i> Sign In to ReconcileX
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form" style="display: none;" onsubmit="handleRegister(event)">
+                    <div class="form-field">
+                        <label>Username</label>
+                        <input type="text" id="authRegUser" class="search-input" placeholder="e.g. jsmith" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Corporate Email</label>
+                        <input type="email" id="authRegEmail" class="search-input" placeholder="jsmith@company.com" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Full Name</label>
+                        <input type="text" id="authRegName" class="search-input" placeholder="John Smith" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Role</label>
+                        <select id="authRegRole" class="select-filter" style="width: 100%;">
+                            <option value="FINANCIAL_ANALYST">Financial Analyst</option>
+                            <option value="SENIOR_AUDITOR">Senior Auditor</option>
+                            <option value="ADMIN">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Password</label>
+                        <input type="password" id="authRegPass" class="search-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+
+                <!-- Quick Demo Credentials -->
+                <div class="demo-account-pills">
+                    <div class="demo-pills-title">Quick Demo Logins (Auto-Fill)</div>
+                    <div class="pills-row">
+                        <button type="button" class="btn-demo-pill" onclick="quickFillAuth('analyst')">
+                            <i class="fas fa-user"></i> Analyst (Demo)
+                        </button>
+                        <button type="button" class="btn-demo-pill" onclick="quickFillAuth('admin')">
+                            <i class="fas fa-user-shield"></i> Admin (Demo)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         AI FINANCIAL COPILOT (PHASE 3)
+         ========================================== -->
+    <button class="ai-fab-btn" id="aiCopilotFab" title="Open AI Financial Reconciliation Assistant" onclick="toggleAICopilot()">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <div class="ai-drawer" id="aiCopilotDrawer">
+        <div class="ai-drawer-header">
+            <div class="ai-drawer-title">
+                <i class="fas fa-sparkles text-cyan"></i>
+                <span>ReconcileX Copilot</span>
+                <span class="status-badge badge-matched" style="font-size: 9px; padding: 2px 6px;">AI v3.0</span>
+            </div>
+            <button class="btn-close-modal" onclick="toggleAICopilot()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="ai-drawer-body" id="aiChatBody">
+            <div class="ai-msg msg-bot">
+                <strong>Hello! I am your AI Financial Auditor.</strong><br>
+                Ask me anything about your active reconciliation, for example:
+                <div style="margin-top: 6px; font-size: 11px; opacity: 0.9;">
+                    • <em>"Summarize reconciliation health"</em><br>
+                    • <em>"What is our largest financial leakage?"</em><br>
+                    • <em>"Explain TXN003"</em><br>
+                    • <em>"Check duplicate payment risk"</em>
+                </div>
+            </div>
+        </div>
+        <div class="ai-drawer-footer">
+            <input type="text" id="aiChatInput" class="ai-input" placeholder="Ask AI financial assistant..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+            <button class="ai-send-btn" onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- ==========================================
          TOAST NOTIFICATION CONTAINER
          ========================================== -->
     <div class="toast-container" id="toastContainer"></div>
@@ -846,7 +997,105 @@
     <script src="js/transactions.js"></script>
     <script src="js/analytics.js"></script>
     <script src="js/reportGenerator.js"></script>
+    <script src="js/aiEngine.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/diagnostics.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Inline Auth & Copilot Glue Helpers -->
+    <script>
+        function switchAuthTab(tab) {
+            const btnSignIn = document.getElementById("authTabSignIn");
+            const btnRegister = document.getElementById("authTabRegister");
+            const formSignIn = document.getElementById("signInForm");
+            const formRegister = document.getElementById("registerForm");
+
+            if (tab === 'signin') {
+                btnSignIn.classList.add("active");
+                btnRegister.classList.remove("active");
+                formSignIn.style.display = "flex";
+                formRegister.style.display = "none";
+            } else {
+                btnSignIn.classList.remove("active");
+                btnRegister.classList.add("active");
+                formSignIn.style.display = "none";
+                formRegister.style.display = "flex";
+            }
+        }
+
+        function quickFillAuth(type) {
+            switchAuthTab('signin');
+            const u = document.getElementById("authLoginUser");
+            const p = document.getElementById("authLoginPass");
+            if (type === 'admin') {
+                u.value = "admin";
+                p.value = "Admin@1234";
+            } else {
+                u.value = "analyst";
+                p.value = "Admin@1234";
+            }
+        }
+
+        async function handleSignIn(e) {
+            e.preventDefault();
+            const u = document.getElementById("authLoginUser").value;
+            const p = document.getElementById("authLoginPass").value;
+            try {
+                const res = await AuthManager.login(u, p);
+                AuthManager.closeAuthModal();
+                App.showToast(`Signed in as ${res.user.fullName} (${res.source})`, "success");
+            } catch (err) {
+                App.showToast(err.message, "danger");
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const u = document.getElementById("authRegUser").value;
+            const em = document.getElementById("authRegEmail").value;
+            const n = document.getElementById("authRegName").value;
+            const r = document.getElementById("authRegRole").value;
+            const p = document.getElementById("authRegPass").value;
+            try {
+                const res = await AuthManager.register(u, em, p, n, r);
+                AuthManager.closeAuthModal();
+                App.showToast(`Account created for ${res.user.fullName}!`, "success");
+            } catch (err) {
+                App.showToast(err.message, "danger");
+            }
+        }
+
+        function toggleAICopilot() {
+            const drawer = document.getElementById("aiCopilotDrawer");
+            if (drawer) drawer.classList.toggle("active");
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById("aiChatInput");
+            const body = document.getElementById("aiChatBody");
+            if (!input || !body) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Append user msg
+            const userMsg = document.createElement("div");
+            userMsg.className = "ai-msg msg-user";
+            userMsg.textContent = text;
+            body.appendChild(userMsg);
+            input.value = "";
+            body.scrollTop = body.scrollHeight;
+
+            // Generate AI response
+            setTimeout(() => {
+                const reply = AIEngine.processQuery(text, App.getActiveReconciliation ? App.getActiveReconciliation() : null);
+                const botMsg = document.createElement("div");
+                botMsg.className = "ai-msg msg-bot";
+                botMsg.innerHTML = reply.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                body.appendChild(botMsg);
+                body.scrollTop = body.scrollHeight;
+            }, 300);
+        }
+    </script>
 
 </body>
 </html>

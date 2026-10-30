@@ -45,6 +45,7 @@ loadScript("js/duplicateDetector.js");
 loadScript("js/reconciliation.js");
 loadScript("js/storage.js");
 loadScript("js/csvReader.js");
+loadScript("js/aiEngine.js");
 
 console.log("=== RUNNING RECONCILEX AUTOMATED TEST SUITE ===\n");
 
@@ -229,6 +230,22 @@ TXN105,2026-10-27,2400.00,"Travel Expenses, Flight Del-Blr",REF-905\`;
         const txn105Results = reconAdv.results.filter(x => x.transactionId === "TXN105");
         assert(txn105Results.length === 2, "Both occurrences of duplicate TXN105 safely reconciled without data loss");
         assert(txn105Results[0].status === "duplicate", "TXN105 occurrence marked with 'duplicate' status");
+
+        // ----------------------------------------------------
+        // TEST 8: AI Fuzzy Matching & Anomaly Explanations (Phase 3)
+        // ----------------------------------------------------
+        console.log("\\n--> Testing AI Fuzzy Matching & Anomaly Explanations...");
+        const aiScore = AIEngine.calculateDescriptionMatchScore("AMZN MKTP US*102 AWS SERVICES", "Amazon Web Services Inc Cloud");
+        assert(aiScore >= 50, "AI Fuzzy Matcher scored similarity: " + aiScore + "% (Expected >= 50%)");
+
+        const identicalScore = AIEngine.calculateDescriptionMatchScore("Client Retainer Fee", "Client Retainer Fee");
+        assert(identicalScore === 100, "AI Exact match scored 100%");
+
+        const anomalyExplanation = AIEngine.explainAnomaly(txn3);
+        assert(anomalyExplanation && anomalyExplanation.length > 10, "AI Root-cause anomaly explanation generated: " + anomalyExplanation);
+
+        const aiQueryReply = AIEngine.processQuery("summarize reconciliation health", recon);
+        assert(aiQueryReply && aiQueryReply.includes("Executive Reconciliation Summary"), "AI Copilot answered summary query accurately");
 
         // Summary
         console.log("\\n==============================================");

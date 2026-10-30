@@ -855,6 +855,7 @@ const App = (() => {
         clearFile,
         openSavedSession,
         deleteSavedSession,
-        showToast
+        showToast,
+        getActiveReconciliation: () => activeReconciliation
     };
 })();
