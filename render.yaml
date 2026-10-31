@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: reconcilex-api
+    runtime: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_URL
+        value: ""
+    healthCheckPath: /api/health
