@@ -511,6 +511,50 @@ const App = (() => {
     }
 
     /**
+     * Load Aarav Technologies 31-Record PDF Dataset
+     */
+    async function loadAaravDataset() {
+        try {
+            showToast("Loading Aarav Technologies 31-record dataset...", "info");
+
+            const bRows = typeof PDFExtractor !== "undefined" && PDFExtractor.getAaravBankRows ? PDFExtractor.getAaravBankRows() : [];
+            const cRows = typeof PDFExtractor !== "undefined" && PDFExtractor.getAaravCompanyRows ? PDFExtractor.getAaravCompanyRows() : [];
+
+            const valBank = Validation.validateDataset(bRows, ["transaction_id", "date", "amount", "description", "reference_number"], "Aarav Bank Statement");
+            const valComp = Validation.validateDataset(cRows, ["transaction_id", "date", "amount", "description", "reference_number"], "Aarav Company Records");
+
+            bankParsedData = {
+                file: null,
+                fileName: "aarav-bank-statement.pdf",
+                fileSize: 5088,
+                rawRows: bRows,
+                validRows: valBank.validRows,
+                headers: ["transaction_id", "date", "amount", "description", "reference_number"],
+                warnings: []
+            };
+
+            companyParsedData = {
+                file: null,
+                fileName: "aarav-company-records.pdf",
+                fileSize: 4935,
+                rawRows: cRows,
+                validRows: valComp.validRows,
+                headers: ["transaction_id", "date", "amount", "description", "reference_number"],
+                warnings: []
+            };
+
+            renderFileInfo(dom.bankFileInfo, bankParsedData, "bank");
+            renderFileInfo(dom.companyFileInfo, companyParsedData, "company");
+            checkEnableReconcile();
+
+            showToast("Aarav 31-record dataset loaded successfully! Running reconciliation...", "success");
+            runReconciliation();
+        } catch (e) {
+            showToast("Failed to load Aarav dataset: " + e.message, "danger");
+        }
+    }
+
+    /**
      * Run Core Reconciliation
      */
     function runReconciliation() {
@@ -917,6 +961,8 @@ const App = (() => {
         handleBankFileSelected,
         handleCompanyFileSelected,
         runReconciliation,
+        loadDemoData,
+        loadAaravDataset,
         hasUploadedFiles: () => !!(bankParsedData && companyParsedData),
         removeFile: clearFile,
         getActiveReconciliation: () => activeReconciliation
